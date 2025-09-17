@@ -119,23 +119,32 @@ class DialogflowAPI:
     ) -> dialogflow.Conversation:
         """Create conversation using conversation_id
         """
+        logging.info("Creating new Dialogflow conversation with ID: %s", conversation_id)
+        logging.info("Using conversation profile: %s", conversation_profile.name)
+
         conversation = dialogflow.Conversation(
             conversation_profile=conversation_profile.name
         )
         project_path = self.conversations_client.common_location_path(
             project, location_id)
+
+        logging.info("Project path for conversation: %s", project_path)
+        logging.info("Location ID: %s, Project: %s", location_id, project)
+
         conversation_request = dialogflow.CreateConversationRequest(
             parent=project_path,
             conversation=conversation,
             conversation_id=conversation_id,
         )
 
+        logging.info("Making CreateConversation API call...")
         conversation = self.conversations_client.create_conversation(
             request=conversation_request)
 
         logging.info(
-            "Created conversation %s for project path %s", conversation.name,
-            project_path)
+            "✅ Successfully created conversation: %s", conversation.name)
+        logging.info("Conversation state: %s", conversation.lifecycle_state)
+        logging.info("Conversation start time: %s", conversation.start_time)
 
         return conversation
 
@@ -175,15 +184,20 @@ class DialogflowAPI:
         """Create both the agent and customer participant for the conversation
 
         Args:
-            conversation_id (str): conversation id from the websocket message parameters
+            conversation_name (str): full conversation name path
+            role (str): participant role (HUMAN_AGENT or END_USER)
         """
+        logging.info("Creating participant with role: %s for conversation: %s", role, conversation_name)
+
         participant = dialogflow.Participant()
         participant.role = role
+
+        logging.info("Making CreateParticipant API call for role: %s", role)
         participant = self.participants_client.create_participant(
             parent=conversation_name, participant=participant)
-        logging.debug("Creating new participant %s:%s",
-                      role,
-                      participant)
+
+        logging.info("✅ Successfully created participant: %s (role: %s)",
+                      participant.name, participant.role.name)
 
         return participant
 
@@ -195,15 +209,28 @@ class DialogflowAPI:
         """While the stream is not closed or terminated, maintain a steady call to streaming
         analyze content API endpoint
         """
-        logging.debug("Call streaming analyze content %s, %s",
-                      audio_stream.closed, audio_stream.is_final)
+        logging.info("Starting maintained streaming analyze content for participant: %s", participant.name)
+        logging.info("Audio config - sample rate: %s, encoding: %s",
+                    audio_config.sample_rate_hertz, audio_config.audio_encoding)
+
+        stream_session_count = 0
         while not audio_stream.terminate:
-            # while not audio_stream.is_final and not audio_stream.closed:
+            stream_session_count += 1
+            logging.info("Starting streaming session #%s for participant: %s",
+                        stream_session_count, participant.name)
+
             while not audio_stream.closed:
+                logging.debug("Calling streaming_analyze_content for %s (session #%s)",
+                            participant.name, stream_session_count)
                 self.streaming_analyze_content(
                     audio_stream,
                     participant,
                     audio_config)
+
+            logging.info("Audio stream closed for participant: %s (session #%s)",
+                        participant.name, stream_session_count)
+
+        logging.info("Terminating streaming analyze content for participant: %s", participant.name)
 
     def streaming_analyze_content(
             self,
@@ -213,48 +240,81 @@ class DialogflowAPI:
         """Call dialogflow backend StreamingAnalyzeContent endpoint,
         and send the audio binary stream from Audiohook.
         """
+        logging.info("Initiating streaming analyze content for participant: %s", participant.name)
+        logging.debug("Participant role: %s", participant.role.name)
+
         try:
-            logging.debug("call streaming analyze content for %s", participant)
+            logging.info("Making streaming_analyze_content API call for %s", participant.name)
             responses = self.participants_client.streaming_analyze_content(
                 requests=self.generator_streaming_analyze_content_request(
                     audio_config, participant, audio_stream))
+            logging.info("Successfully established streaming connection for %s", participant.name)
         except OutOfRange as e:
             audio_stream.closed = True
-            logging.warning(
-                "The single audio stream last more than 120 second %s ", e)
+            logging.error(
+                "OutOfRange error - audio stream exceeded 120 seconds for %s: %s",
+                participant.name, e)
             return
         except FailedPrecondition as e:
             audio_stream.closed = True
-            logging.warning(
-                "Failed the precondition check for StreamingAnalyzeContent %s ", e)
+            logging.error(
+                "FailedPrecondition error for StreamingAnalyzeContent %s: %s",
+                participant.name, e)
             return
         except ResourceExhausted as e:
             audio_stream.closed = True
-            logging.warning(
-                "Exceed quota for calling streaming analyze content %s ", e)
+            logging.error(
+                "ResourceExhausted error - quota exceeded for %s: %s",
+                participant.name, e)
+            return
+        except Exception as e:
+            audio_stream.closed = True
+            logging.error(
+                "Unexpected error in streaming_analyze_content for %s: %s",
+                participant.name, e)
             return
 
+        response_count = 0
         for response in responses:
-            audio_stream.speech_end_offset = response.recognition_result.speech_end_offset.seconds * 1000
-            logging.debug(response)
-            if response.recognition_result.is_final:
-                audio_stream.is_final = True
-                logging.debug(
-                    "Final transcript for %s: %s, and is final offset",
-                    participant.role.name,
-                    response.recognition_result.transcript,
-                )
-                offset = response.recognition_result.speech_end_offset
-                audio_stream.is_final_offset = int(
-                    offset.seconds * 1000 + offset.microseconds / 1000
-                )
+            response_count += 1
+            logging.debug("Processing response #%s for %s", response_count, participant.name)
 
-            if response.recognition_result:
-                logging.debug(
-                    "Role %s: Interim response recognition result transcript: %s, time %s",
-                    participant.role.name,
-                    response.recognition_result.transcript,
-                    response.recognition_result.speech_end_offset)
+            # Log response structure
+            if hasattr(response, 'recognition_result') and response.recognition_result:
+                recognition_result = response.recognition_result
+                audio_stream.speech_end_offset = recognition_result.speech_end_offset.seconds * 1000
+
+                if recognition_result.is_final:
+                    audio_stream.is_final = True
+                    offset = recognition_result.speech_end_offset
+                    audio_stream.is_final_offset = int(
+                        offset.seconds * 1000 + offset.microseconds / 1000
+                    )
+                    logging.info(
+                        "FINAL TRANSCRIPT - %s (%s): '%s' [confidence: %s, end_offset: %sms]",
+                        participant.role.name,
+                        participant.name,
+                        recognition_result.transcript,
+                        getattr(recognition_result, 'confidence', 'N/A'),
+                        audio_stream.is_final_offset
+                    )
+                else:
+                    logging.info(
+                        "INTERIM TRANSCRIPT - %s (%s): '%s' [end_offset: %sms]",
+                        participant.role.name,
+                        participant.name,
+                        recognition_result.transcript,
+                        recognition_result.speech_end_offset.seconds * 1000
+                    )
+
+            # Log other response types
+            if hasattr(response, 'automated_agent_reply') and response.automated_agent_reply:
+                logging.info("Automated agent reply received for %s", participant.name)
+
+            if hasattr(response, 'message') and response.message:
+                logging.info("Message received for %s", participant.name)
+
+            logging.debug("Full response for %s: %s", participant.name, response)
 
     def complete_conversation(self, conversation_name: str):
         """Send complete conversation request to Dialogflow

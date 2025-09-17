@@ -106,6 +106,16 @@ def process_open_conversation_message(
     user_thread = Thread(
         target=dialogflow_api.maintained_streaming_analyze_content, args=(
             customer_stream, participant_user, customer_audio_config))
+
+    logging.info("Starting speech-to-text threads for conversation: %s", conversation_name)
+    logging.info("Agent participant: %s", participant_agent.name)
+    logging.info("User participant: %s", participant_user.name)
+
+    # Start threads immediately since startPaused is False
+    agent_thread.start()
+    user_thread.start()
+    logging.info("Speech-to-text threads started successfully")
+
     ws.send(json.dumps(audiohook.create_opened_message()))
     return OpenConversationState(
         agent_thread,
@@ -268,10 +278,34 @@ def audiohook_connect(ws: Server):
             # which is separated into single streams
             # using numpy
             # stream the audio to pub/sub
-            array = np.frombuffer(data, dtype=np.int8)
-            reshaped = array.reshape(
-                (int(len(array) / 2), 2))
-            # append audio to customer audio buffer
-            customer_stream.fill_buffer(reshaped[:, 0].tobytes())
-            # append audio to agent audio buffer
-            agent_stream.fill_buffer(reshaped[:, 1].tobytes())
+            if open_conversation_state is not None:
+                array = np.frombuffer(data, dtype=np.int8)
+                reshaped = array.reshape(
+                    (int(len(array) / 2), 2))
+
+                # Log audio data statistics
+                audio_chunk_size = len(data)
+                customer_audio_size = len(reshaped[:, 0].tobytes())
+                agent_audio_size = len(reshaped[:, 1].tobytes())
+
+                logging.debug("Audio chunk received - total: %s bytes, customer: %s bytes, agent: %s bytes",
+                            audio_chunk_size, customer_audio_size, agent_audio_size)
+
+                # append audio to customer audio buffer
+                customer_stream.fill_buffer(reshaped[:, 0].tobytes())
+                # append audio to agent audio buffer
+                agent_stream.fill_buffer(reshaped[:, 1].tobytes())
+
+                # Log buffer states every 100 chunks to avoid log spam
+                if hasattr(customer_stream, '_chunk_count'):
+                    customer_stream._chunk_count += 1
+                    agent_stream._chunk_count += 1
+                else:
+                    customer_stream._chunk_count = 1
+                    agent_stream._chunk_count = 1
+
+                if customer_stream._chunk_count % 100 == 0:
+                    logging.info("Audio streaming progress - processed %s chunks for conversation: %s",
+                               customer_stream._chunk_count, open_conversation_state.conversation_name)
+            else:
+                logging.debug("Received audio data but no open conversation state - ignoring")

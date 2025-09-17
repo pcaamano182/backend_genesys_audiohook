@@ -55,7 +55,19 @@ class Stream:
         self.audio_encoding = dialogflow.AudioEncoding.AUDIO_ENCODING_MULAW
 
     def fill_buffer(self, in_data, *args, **kwargs):
+        if hasattr(self, '_buffer_count'):
+            self._buffer_count += 1
+        else:
+            self._buffer_count = 1
+            logging.info("Starting audio buffer for stream - rate: %s, chunk_size: %s",
+                        self._rate, self.chunk_size)
+
         self._buff.put(in_data)
+
+        # Log buffer activity every 50 chunks to avoid spam
+        if self._buffer_count % 50 == 0:
+            logging.debug("Audio buffer filled - chunk #%s, size: %s bytes, queue size: %s",
+                         self._buffer_count, len(in_data), self._buff.qsize())
 
     def define_audio_config(
             self,
@@ -81,7 +93,8 @@ class Stream:
     def generator(self):
         """Stream Audio from Genesys Audiohook Monitor to API and to local buffer"""
         # Handle restart.
-        logging.debug("Restart generator")
+        logging.info("Starting audio generator - restart #%s, closed: %s, is_final: %s",
+                    self.restart_counter + 1, self.closed, self.is_final)
         self.restart_counter += 1
         # After the restart of the streaming, set is_final to False
         # to resume populating audio data
@@ -165,7 +178,10 @@ class Stream:
                 self.audio_input_chunks.extend(data)
 
                 if data:
-                    yield b"".join(data)
+                    audio_chunk = b"".join(data)
+                    logging.debug("Yielding audio chunk to Dialogflow - size: %s bytes, total chunks: %s",
+                                len(audio_chunk), len(data))
+                    yield audio_chunk
         except GeneratorExit as e:
             logging.debug("Generator exit after is_final set to true %s", e)
             return
