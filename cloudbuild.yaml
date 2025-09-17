@@ -16,20 +16,38 @@
 # This will deploy multiple services to Cloud Run
 
 steps:
+# Create Artifact Registry repository if it doesn't exist
+- name: 'gcr.io/cloud-builders/gcloud'
+  id: 'Create Artifact Registry'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    if ! gcloud artifacts repositories describe ${_ARTIFACT_REPO} --location=${_REGION} --format='value(name)' 2>/dev/null; then
+      echo "Creating Artifact Registry repository: ${_ARTIFACT_REPO}"
+      gcloud artifacts repositories create ${_ARTIFACT_REPO} \
+        --repository-format=docker \
+        --location=${_REGION} \
+        --description="Repository for Agent Assist integrations"
+    else
+      echo "Artifact Registry repository ${_ARTIFACT_REPO} already exists"
+    fi
+
 # Build and deploy Genesys Cloud AudioHook service
 - name: 'gcr.io/cloud-builders/docker'
   id: 'Build GenesysCloud AudioHook'
   args:
   - 'build'
   - '-t'
-  - 'gcr.io/$PROJECT_ID/genesys-audiohook:$SHORT_SHA'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genesys-audiohook:$SHORT_SHA'
   - './genesyscloud/genesyscloud-audiohook'
+  waitFor: ['Create Artifact Registry']
 
 - name: 'gcr.io/cloud-builders/docker'
   id: 'Push GenesysCloud AudioHook'
   args:
   - 'push'
-  - 'gcr.io/$PROJECT_ID/genesys-audiohook:$SHORT_SHA'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genesys-audiohook:$SHORT_SHA'
   waitFor: ['Build GenesysCloud AudioHook']
 
 - name: 'gcr.io/cloud-builders/gcloud'
@@ -39,18 +57,18 @@ steps:
   - 'deploy'
   - 'genesys-audiohook'
   - '--image'
-  - 'gcr.io/$PROJECT_ID/genesys-audiohook:$SHORT_SHA'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genesys-audiohook:$SHORT_SHA'
   - '--region'
-  - 'us-central1'
+  - '${_REGION}'
   - '--platform'
   - 'managed'
   - '--allow-unauthenticated'
   - '--port'
   - '8080'
   - '--memory'
-  - '1Gi'
+  - '${_MEMORY}'
   - '--cpu'
-  - '1'
+  - '${_CPU}'
   - '--min-instances'
   - '0'
   - '--max-instances'
@@ -67,14 +85,15 @@ steps:
   args:
   - 'build'
   - '-t'
-  - 'gcr.io/$PROJECT_ID/aa-ui-connector:$SHORT_SHA'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/aa-ui-connector:$SHORT_SHA'
   - './aa-integration-backend/ui-connector'
+  waitFor: ['Create Artifact Registry']
 
 - name: 'gcr.io/cloud-builders/docker'
   id: 'Push AA UI Connector'
   args:
   - 'push'
-  - 'gcr.io/$PROJECT_ID/aa-ui-connector:$SHORT_SHA'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/aa-ui-connector:$SHORT_SHA'
   waitFor: ['Build AA UI Connector']
 
 - name: 'gcr.io/cloud-builders/gcloud'
@@ -84,18 +103,18 @@ steps:
   - 'deploy'
   - 'aa-ui-connector'
   - '--image'
-  - 'gcr.io/$PROJECT_ID/aa-ui-connector:$SHORT_SHA'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/aa-ui-connector:$SHORT_SHA'
   - '--region'
-  - 'us-central1'
+  - '${_REGION}'
   - '--platform'
   - 'managed'
   - '--allow-unauthenticated'
   - '--port'
   - '8080'
   - '--memory'
-  - '1Gi'
+  - '${_MEMORY}'
   - '--cpu'
-  - '1'
+  - '${_CPU}'
   - '--min-instances'
   - '0'
   - '--max-instances'
@@ -112,14 +131,15 @@ steps:
   args:
   - 'build'
   - '-t'
-  - 'gcr.io/$PROJECT_ID/aa-pubsub-interceptor:$SHORT_SHA'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/aa-pubsub-interceptor:$SHORT_SHA'
   - './aa-integration-backend/cloud-pubsub-interceptor'
+  waitFor: ['Create Artifact Registry']
 
 - name: 'gcr.io/cloud-builders/docker'
   id: 'Push AA PubSub Interceptor'
   args:
   - 'push'
-  - 'gcr.io/$PROJECT_ID/aa-pubsub-interceptor:$SHORT_SHA'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/aa-pubsub-interceptor:$SHORT_SHA'
   waitFor: ['Build AA PubSub Interceptor']
 
 - name: 'gcr.io/cloud-builders/gcloud'
@@ -129,18 +149,18 @@ steps:
   - 'deploy'
   - 'aa-pubsub-interceptor'
   - '--image'
-  - 'gcr.io/$PROJECT_ID/aa-pubsub-interceptor:$SHORT_SHA'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/aa-pubsub-interceptor:$SHORT_SHA'
   - '--region'
-  - 'us-central1'
+  - '${_REGION}'
   - '--platform'
   - 'managed'
   - '--allow-unauthenticated'
   - '--port'
   - '8080'
   - '--memory'
-  - '1Gi'
+  - '${_MEMORY}'
   - '--cpu'
-  - '1'
+  - '${_CPU}'
   - '--min-instances'
   - '0'
   - '--max-instances'
@@ -159,9 +179,9 @@ steps:
   - '-c'
   - |
     echo "Deployment completed! Service URLs:"
-    echo "Genesys AudioHook: $(gcloud run services describe genesys-audiohook --region=us-central1 --format='value(status.url)')"
-    echo "AA UI Connector: $(gcloud run services describe aa-ui-connector --region=us-central1 --format='value(status.url)')"
-    echo "AA PubSub Interceptor: $(gcloud run services describe aa-pubsub-interceptor --region=us-central1 --format='value(status.url)')"
+    echo "Genesys AudioHook: $(gcloud run services describe genesys-audiohook --region=${_REGION} --format='value(status.url)')"
+    echo "AA UI Connector: $(gcloud run services describe aa-ui-connector --region=${_REGION} --format='value(status.url)')"
+    echo "AA PubSub Interceptor: $(gcloud run services describe aa-pubsub-interceptor --region=${_REGION} --format='value(status.url)')"
   waitFor: ['Deploy GenesysCloud AudioHook', 'Deploy AA UI Connector', 'Deploy AA PubSub Interceptor']
 
 # Cloud Build timeout (optional, defaults to 10 minutes)
@@ -178,3 +198,4 @@ substitutions:
   _REGION: 'us-central1'
   _MEMORY: '1Gi'
   _CPU: '1'
+  _ARTIFACT_REPO: 'agent-assist-repo'
