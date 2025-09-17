@@ -80,7 +80,7 @@ def process_open_conversation_message(
         dialogflow_api.get_conversation(
             conversation_name)
     except NotFound as e:
-        logging.warning("Error getting the conversation : %s", e)
+        logging.info("Conversation not found, creating new conversation: %s", normalized_conversation_id)
         dialogflow_api.create_conversation(
             conversation_profile, normalized_conversation_id)
 
