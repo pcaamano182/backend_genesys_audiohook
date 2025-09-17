@@ -123,6 +123,8 @@ steps:
   - '80'
   - '--timeout'
   - '3600'
+  - '--set-env-vars'
+  - 'AUTH_OPTION=Skip,JWT_SECRET_KEY=demo-secret-key'
   waitFor: ['Push AA UI Connector']
 
 # Build and deploy AA Integration Backend Cloud Pub/Sub Interceptor
