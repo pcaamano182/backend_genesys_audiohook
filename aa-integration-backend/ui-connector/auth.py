@@ -25,8 +25,15 @@ jwt_secret_key = ''  # To be loaded from config.JWT_SECRET_KEY_PATH
 
 
 def load_jwt_secret_key():
-    with open(config.JWT_SECRET_KEY_PATH, 'r') as key_file:
-        jwt_secret_key = key_file.read()
+    global jwt_secret_key
+    try:
+        with open(config.JWT_SECRET_KEY_PATH, 'r') as key_file:
+            jwt_secret_key = key_file.read()
+    except FileNotFoundError:
+        # Fallback to environment variable or generate a default key
+        import os
+        jwt_secret_key = os.environ.get('JWT_SECRET_KEY', 'fallback-secret-key-for-demo-purposes-only')
+        print(f"Warning: JWT secret key file not found at {config.JWT_SECRET_KEY_PATH}, using fallback")
 
 
 def check_auth(token):
