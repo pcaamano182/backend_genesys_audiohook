@@ -47,7 +47,7 @@ class AudioHook:
         opened_message = self.create_message_by_type(
             message_type="opened")
         opened_message["parameters"] = {
-            "startPaused": True,
+            "startPaused": False,
             "media": [
                 {
                     "type": "audio",
