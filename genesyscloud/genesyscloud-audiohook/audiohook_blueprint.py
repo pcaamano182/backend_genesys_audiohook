@@ -288,7 +288,7 @@ def audiohook_connect(ws: Server):
                 customer_audio_size = len(reshaped[:, 0].tobytes())
                 agent_audio_size = len(reshaped[:, 1].tobytes())
 
-                logging.debug("Audio chunk received - total: %s bytes, customer: %s bytes, agent: %s bytes",
+                logging.info("Audio chunk received - total: %s bytes, customer: %s bytes, agent: %s bytes",
                             audio_chunk_size, customer_audio_size, agent_audio_size)
 
                 # append audio to customer audio buffer
@@ -308,4 +308,4 @@ def audiohook_connect(ws: Server):
                     logging.info("Audio streaming progress - processed %s chunks for conversation: %s",
                                customer_stream._chunk_count, open_conversation_state.conversation_name)
             else:
-                logging.debug("Received audio data but no open conversation state - ignoring")
+                logging.info("Received audio data but no open conversation state - ignoring")
