@@ -212,7 +212,9 @@ def audiohook_connect(ws: Server):
     open_conversation_state = None
     while True:
         data = ws.receive()
+        logging.info("WebSocket received data - type: %s, size: %s bytes", type(data).__name__, len(data) if hasattr(data, '__len__') else 'N/A')
         if isinstance(data, str):
+            logging.info("Processing WebSocket string message")
             try:
                 json_message = json.loads(data)
             except ValueError as e:
@@ -274,6 +276,7 @@ def audiohook_connect(ws: Server):
                         "Disconnecting Audiohook with the server")
                     break
         else:
+            logging.info("Processing WebSocket binary audio data")
             # audio is a 2-channel interleaved 8-bit PCMU audio stream
             # which is separated into single streams
             # using numpy
