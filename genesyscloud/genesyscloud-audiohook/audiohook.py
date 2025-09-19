@@ -52,7 +52,7 @@ class AudioHook:
                 {
                     "type": "audio",
                     "format": "PCMU",
-                    "channels": ["external"],
+                    "channels": ["external", "internal"],
                     "rate": 8000,
                 }
             ],
