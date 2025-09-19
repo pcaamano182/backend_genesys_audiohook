@@ -216,7 +216,7 @@ class DialogflowAPI:
         stream_session_count = 0
         while not audio_stream.terminate:
             stream_session_count += 1
-            logging.info("Starting streaming session #%s for participant: %s",
+            logging.debug("Starting streaming session #%s for participant: %s",
                         stream_session_count, participant.name)
 
             while not audio_stream.closed:
@@ -227,7 +227,7 @@ class DialogflowAPI:
                     participant,
                     audio_config)
 
-            logging.info("Audio stream closed for participant: %s (session #%s)",
+            logging.debug("Audio stream closed for participant: %s (session #%s)",
                         participant.name, stream_session_count)
 
         logging.info("Terminating streaming analyze content for participant: %s", participant.name)
