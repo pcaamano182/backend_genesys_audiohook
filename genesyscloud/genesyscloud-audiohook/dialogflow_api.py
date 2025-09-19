@@ -279,10 +279,20 @@ class DialogflowAPI:
             response_count += 1
             logging.debug("Processing response #%s for %s", response_count, participant.name)
 
+            # Skip processing if the response contains empty recognition results
+            if hasattr(response, 'recognition_result') and response.recognition_result:
+                transcript = response.recognition_result.transcript.strip()
+                if not transcript or len(transcript) < 2:
+                    logging.debug("Skipping empty/minimal recognition result for %s: '%s'", participant.name, transcript)
+                    continue
+
             # Log response structure
             if hasattr(response, 'recognition_result') and response.recognition_result:
                 recognition_result = response.recognition_result
                 audio_stream.speech_end_offset = recognition_result.speech_end_offset.seconds * 1000
+
+                # Use the already validated transcript
+                transcript = recognition_result.transcript.strip()
 
                 if recognition_result.is_final:
                     audio_stream.is_final = True
@@ -294,7 +304,7 @@ class DialogflowAPI:
                         "FINAL TRANSCRIPT - %s (%s): '%s' [confidence: %s, end_offset: %sms]",
                         participant.role.name,
                         participant.name,
-                        recognition_result.transcript,
+                        transcript,
                         getattr(recognition_result, 'confidence', 'N/A'),
                         audio_stream.is_final_offset
                     )
@@ -303,7 +313,7 @@ class DialogflowAPI:
                         "INTERIM TRANSCRIPT - %s (%s): '%s' [end_offset: %sms]",
                         participant.role.name,
                         participant.name,
-                        recognition_result.transcript,
+                        transcript,
                         recognition_result.speech_end_offset.seconds * 1000
                     )
 
