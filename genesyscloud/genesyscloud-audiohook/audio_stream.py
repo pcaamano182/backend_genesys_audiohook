@@ -59,7 +59,7 @@ class Stream:
             self._buffer_count += 1
         else:
             self._buffer_count = 1
-            logging.info("Starting audio buffer for stream - rate: %s, chunk_size: %s",
+            logging.info("🎶 Starting audio buffer for stream - rate: %s, chunk_size: %s",
                         self._rate, self.chunk_size)
 
         self._buff.put(in_data)
@@ -93,8 +93,8 @@ class Stream:
     def generator(self):
         """Stream Audio from Genesys Audiohook Monitor to API and to local buffer"""
         # Handle restart.
-        logging.info("Starting audio generator - restart #%s, closed: %s, is_final: %s",
-                    self.restart_counter + 1, self.closed, self.is_final)
+        logging.info("🔄 Starting audio generator - restart #%s, closed: %s, is_final: %s, queue_size: %s",
+                    self.restart_counter + 1, self.closed, self.is_final, self._buff.qsize())
         self.restart_counter += 1
         # After the restart of the streaming, set is_final to False
         # to resume populating audio data
@@ -154,8 +154,8 @@ class Stream:
                 try:
                     chunk = self._buff.get(block=True, timeout=0.5)
                 except queue.Empty:
-                    logging.debug(
-                        "queue is empty break the loop and stop generator")
+                    logging.info(
+                        "⏰ Audio queue is empty - stopping generator (restart #%s)", self.restart_counter)
                     break
                 if chunk is None:
                     logging.debug(
@@ -179,8 +179,8 @@ class Stream:
 
                 if data:
                     audio_chunk = b"".join(data)
-                    logging.debug("Yielding audio chunk to Dialogflow - size: %s bytes, total chunks: %s",
-                                len(audio_chunk), len(data))
+                    logging.debug("📤 Yielding audio chunk to Dialogflow - size: %s bytes, total chunks: %s, queue_remaining: %s",
+                                len(audio_chunk), len(data), self._buff.qsize())
                     yield audio_chunk
         except GeneratorExit as e:
             logging.debug("Generator exit after is_final set to true %s", e)

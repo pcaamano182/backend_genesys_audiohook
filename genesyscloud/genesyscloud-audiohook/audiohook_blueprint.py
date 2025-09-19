@@ -107,14 +107,14 @@ def process_open_conversation_message(
         target=dialogflow_api.maintained_streaming_analyze_content, args=(
             customer_stream, participant_user, customer_audio_config))
 
-    logging.info("Starting speech-to-text threads for conversation: %s", conversation_name)
-    logging.info("Agent participant: %s", participant_agent.name)
-    logging.info("User participant: %s", participant_user.name)
+    logging.info("🚀 Starting speech-to-text threads for conversation: %s", conversation_name)
+    logging.info("🤵 Agent participant: %s", participant_agent.name)
+    logging.info("👤 User participant: %s", participant_user.name)
 
     # Start threads immediately since startPaused is False
     agent_thread.start()
     user_thread.start()
-    logging.info("Speech-to-text threads started successfully")
+    logging.info("✅ Speech-to-text threads started successfully")
 
     ws.send(json.dumps(audiohook.create_opened_message()))
     return OpenConversationState(
@@ -212,9 +212,11 @@ def audiohook_connect(ws: Server):
     open_conversation_state = None
     while True:
         data = ws.receive()
-        logging.info("WebSocket received data - type: %s, size: %s bytes", type(data).__name__, len(data) if hasattr(data, '__len__') else 'N/A')
+        data_type = type(data).__name__
+        data_size = len(data) if hasattr(data, '__len__') else 'N/A'
+        logging.info("🔌 WebSocket received data - type: %s, size: %s bytes", data_type, data_size)
         if isinstance(data, str):
-            logging.info("Processing WebSocket string message")
+            logging.info("📝 Processing WebSocket string message")
             try:
                 json_message = json.loads(data)
             except ValueError as e:
@@ -223,7 +225,7 @@ def audiohook_connect(ws: Server):
                 continue
             message_type = json_message.get("type")
             logging.info(
-                "Handle %s message %s", message_type, json_message)
+                "📨 Handle %s message: %s", message_type, json_message)
             conversation_id = json_message.get("parameters", {}).get(
                 "conversationId", DEFAULT_CONVERSATION_ID)
             audiohook.set_session_id(json_message.get("id", 0))
@@ -276,7 +278,7 @@ def audiohook_connect(ws: Server):
                         "Disconnecting Audiohook with the server")
                     break
         else:
-            logging.info("Processing WebSocket binary audio data")
+            logging.info("🎵 Processing WebSocket binary audio data - size: %s bytes", len(data))
             # audio is a 2-channel interleaved 8-bit PCMU audio stream
             # which is separated into single streams
             # using numpy
@@ -291,7 +293,7 @@ def audiohook_connect(ws: Server):
                 customer_audio_size = len(reshaped[:, 0].tobytes())
                 agent_audio_size = len(reshaped[:, 1].tobytes())
 
-                logging.info("Audio chunk received - total: %s bytes, customer: %s bytes, agent: %s bytes",
+                logging.info("🎧 Audio chunk processed - total: %s bytes, customer: %s bytes, agent: %s bytes",
                             audio_chunk_size, customer_audio_size, agent_audio_size)
 
                 # append audio to customer audio buffer
@@ -311,4 +313,4 @@ def audiohook_connect(ws: Server):
                     logging.info("Audio streaming progress - processed %s chunks for conversation: %s",
                                customer_stream._chunk_count, open_conversation_state.conversation_name)
             else:
-                logging.info("Received audio data but no open conversation state - ignoring")
+                logging.warning("❌ Received audio data but no open conversation state - ignoring %s bytes", len(data))
