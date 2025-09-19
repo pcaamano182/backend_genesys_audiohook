@@ -54,6 +54,10 @@ class OpenConversationState:
     user_thread: Thread
     conversation_name: str
     is_opened: bool
+    participant_agent: object
+    participant_user: object
+    agent_audio_config: object
+    customer_audio_config: object
 
 
 def process_open_conversation_message(
@@ -121,7 +125,11 @@ def process_open_conversation_message(
         agent_thread,
         user_thread,
         conversation_name,
-        True)
+        True,
+        participant_agent,
+        participant_user,
+        agent_audio_config,
+        customer_audio_config)
 
 
 def process_ongoing_conversation_messages(
@@ -153,8 +161,21 @@ def process_ongoing_conversation_messages(
             # closed to True, now after resume, need to flip the bit
             customer_stream.closed = False
             agent_stream.closed = False
-            open_conversation_state.agent_thread.start()
-            open_conversation_state.user_thread.start()
+
+            # Only start threads if they're not already running
+            if not open_conversation_state.agent_thread.is_alive():
+                # Create new thread if the old one finished or was never started
+                open_conversation_state.agent_thread = Thread(
+                    target=dialogflow_api.maintained_streaming_analyze_content,
+                    args=(agent_stream, open_conversation_state.participant_agent, open_conversation_state.agent_audio_config))
+                open_conversation_state.agent_thread.start()
+
+            if not open_conversation_state.user_thread.is_alive():
+                # Create new thread if the old one finished or was never started
+                open_conversation_state.user_thread = Thread(
+                    target=dialogflow_api.maintained_streaming_analyze_content,
+                    args=(customer_stream, open_conversation_state.participant_user, open_conversation_state.customer_audio_config))
+                open_conversation_state.user_thread.start()
         case "paused":
             customer_stream.closed = True
             agent_stream.closed = True
