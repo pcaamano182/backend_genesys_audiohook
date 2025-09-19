@@ -235,7 +235,7 @@ def audiohook_connect(ws: Server):
         data = ws.receive()
         data_type = type(data).__name__
         data_size = len(data) if hasattr(data, '__len__') else 'N/A'
-        logging.info("🔌 WebSocket received data - type: %s, size: %s bytes", data_type, data_size)
+        # logging.info("🔌 WebSocket received data - type: %s, size: %s bytes", data_type, data_size)
         if isinstance(data, str):
             logging.info("📝 Processing WebSocket string message")
             try:
@@ -299,7 +299,7 @@ def audiohook_connect(ws: Server):
                         "Disconnecting Audiohook with the server")
                     break
         else:
-            logging.info("🎵 Processing WebSocket binary audio data - size: %s bytes", len(data))
+            # logging.info("🎵 Processing WebSocket binary audio data - size: %s bytes", len(data))
             # audio is a 2-channel interleaved 8-bit PCMU audio stream
             # which is separated into single streams
             # using numpy
@@ -314,8 +314,8 @@ def audiohook_connect(ws: Server):
                 customer_audio_size = len(reshaped[:, 0].tobytes())
                 agent_audio_size = len(reshaped[:, 1].tobytes())
 
-                logging.info("🎧 Audio chunk processed - total: %s bytes, customer: %s bytes, agent: %s bytes",
-                            audio_chunk_size, customer_audio_size, agent_audio_size)
+                # logging.info("🎧 Audio chunk processed - total: %s bytes, customer: %s bytes, agent: %s bytes",
+                #             audio_chunk_size, customer_audio_size, agent_audio_size)
 
                 # append audio to customer audio buffer
                 customer_stream.fill_buffer(reshaped[:, 0].tobytes())
