@@ -240,15 +240,15 @@ class DialogflowAPI:
         """Call dialogflow backend StreamingAnalyzeContent endpoint,
         and send the audio binary stream from Audiohook.
         """
-        logging.info("Initiating streaming analyze content for participant: %s", participant.name)
+        # logging.info("Initiating streaming analyze content for participant: %s", participant.name)
         logging.debug("Participant role: %s", participant.role.name)
 
         try:
-            logging.info("Making streaming_analyze_content API call for %s", participant.name)
+            # logging.info("Making streaming_analyze_content API call for %s", participant.name)
             responses = self.participants_client.streaming_analyze_content(
                 requests=self.generator_streaming_analyze_content_request(
                     audio_config, participant, audio_stream))
-            logging.info("Successfully established streaming connection for %s", participant.name)
+            # logging.info("Successfully established streaming connection for %s", participant.name)
         except OutOfRange as e:
             audio_stream.closed = True
             logging.error(
