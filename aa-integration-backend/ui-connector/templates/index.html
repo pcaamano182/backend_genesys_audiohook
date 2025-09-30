@@ -25,6 +25,38 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js"
         integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ=="
         crossorigin="anonymous"></script>
+    <!-- Google Agent Assist UI Modules -->
+    <script src="https://www.gstatic.com/cloudsdk/v1.3/agent-assist-ui-modules.js"></script>
+    <style>
+        #agent-assist-container {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        agent-assist-ui-modules {
+            display: block;
+            width: 100%;
+            min-height: 400px;
+        }
+
+        .transcript-message {
+            margin: 5px 0;
+            padding: 8px;
+            border-radius: 4px;
+            background: #fff;
+            border-left: 4px solid #007bff;
+        }
+
+        .agent-message {
+            border-left-color: #28a745;
+        }
+
+        .customer-message {
+            border-left-color: #ffc107;
+        }
+    </style>
     <script type="text/javascript" charset="utf-8">
         $(document).ready(function () {
             // TODO: Update the URL of your UI Connector Cloud Run Service. Keep it empty for local test/deployment.
@@ -129,6 +161,19 @@
                         console.error('Error:', error);
                     });
             }
+
+            // Initialize Agent Assist UI Modules
+            function initializeAgentAssist() {
+                const uiModules = document.getElementById('ui-modules');
+                if (uiModules && JWT && conversation_profile_name) {
+                    uiModules.setAttribute('auth-token', JWT);
+                    uiModules.setAttribute('conversation-profile', conversation_profile_name);
+                    uiModules.setAttribute('custom-api-endpoint', serviceUrl);
+
+                    console.log('Agent Assist UI Modules initialized');
+                }
+            }
+
             window.setInterval(function () {
                 $('#transport').text(currentSocket.io.engine.transport.name);
             }, 1000);
@@ -140,6 +185,9 @@
                 location_id = conversation_profile_name.split('/')[3];
                 $('#gcp_project_id').text(project_id);
                 $('#gcp_location_id').text(location_id);
+
+                // Initialize UI modules when profile is set
+                setTimeout(initializeAgentAssist, 500);
                 return false;
             });
             $('form#get_conversation_profile').submit(function (event) {
@@ -485,6 +533,22 @@
     </p>
     <h2>Joined Conversations</h2>
     <div id="joined_conversations"></div>
+
+    <!-- Agent Assist UI Modules Container -->
+    <h2>Agent Assist</h2>
+    <div id="agent-assist-container">
+        <agent-assist-ui-modules
+            id="ui-modules"
+            features="TRANSCRIPT,CONVERSATION_SUMMARIZATION,KNOWLEDGE_ASSIST_V2,SMART_REPLY"
+            channel="voice"
+            agent-desktop="Custom"
+            custom-api-endpoint=""
+            auth-token=""
+            conversation-profile=""
+            omit-script-nonce="true">
+        </agent-assist-ui-modules>
+    </div>
+
     <h2>Log (from latest to oldest)</h2>
     <div id="log" style="width: 90%; height: 400px; overflow:scroll; border: thin #000 solid; padding: 5px;">
     </div>
