@@ -137,6 +137,8 @@
                         );
                         // Connect to the Socket.IO server
                         currentSocket = createSocket(JWT, serviceUrl);
+                        // Try to initialize UI modules if conversation profile is already set
+                        setTimeout(initializeAgentAssist, 1000);
                     })
                     .catch((error) => {
                         console.error('Error:', error);
@@ -156,6 +158,8 @@
                         );
                         // Connect to the Socket.IO server
                         currentSocket = createSocket(JWT, serviceUrl);
+                        // Try to initialize UI modules if conversation profile is already set
+                        setTimeout(initializeAgentAssist, 1000);
                     })
                     .catch((error) => {
                         console.error('Error:', error);
@@ -168,9 +172,19 @@
                 if (uiModules && JWT && conversation_profile_name) {
                     uiModules.setAttribute('auth-token', JWT);
                     uiModules.setAttribute('conversation-profile', conversation_profile_name);
-                    uiModules.setAttribute('custom-api-endpoint', serviceUrl);
+                    uiModules.setAttribute('custom-api-endpoint', window.location.origin);
 
-                    console.log('Agent Assist UI Modules initialized');
+                    console.log('Agent Assist UI Modules initialized with:', {
+                        'auth-token': JWT.substring(0, 20) + '...',
+                        'conversation-profile': conversation_profile_name,
+                        'custom-api-endpoint': window.location.origin
+                    });
+                } else {
+                    console.log('Cannot initialize UI modules - missing:', {
+                        'JWT': !!JWT,
+                        'conversation_profile_name': !!conversation_profile_name,
+                        'uiModules element': !!uiModules
+                    });
                 }
             }
 
