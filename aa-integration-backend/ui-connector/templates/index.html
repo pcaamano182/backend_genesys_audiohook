@@ -176,11 +176,20 @@
                     uiModules.setAttribute('auth-token', JWT);
                     uiModules.setAttribute('conversation-profile', conversation_profile_name);
                     uiModules.setAttribute('custom-api-endpoint', window.location.origin);
+                    uiModules.setAttribute('namespace', 'ui-connector-demo');
+
+                    // Set conversation name if available
+                    if (conversation_name) {
+                        uiModules.setAttribute('conversation-name', conversation_name);
+                        console.log('Set conversation name:', conversation_name);
+                    }
 
                     console.log('Agent Assist UI Modules initialized with:', {
                         'auth-token': JWT.substring(0, 20) + '...',
                         'conversation-profile': conversation_profile_name,
-                        'custom-api-endpoint': window.location.origin
+                        'custom-api-endpoint': window.location.origin,
+                        'namespace': 'ui-connector-demo',
+                        'conversation-name': conversation_name || 'not set'
                     });
                 } else {
                     console.log('Cannot initialize UI modules - missing:', {
@@ -242,6 +251,8 @@
                         $('#log').prepend(
                             $('<div/>').text('Received <conversation_name> ' + JSON.stringify(data)).html() + '<br><br>'
                         );
+                        // Re-initialize UI modules with conversation name
+                        setTimeout(initializeAgentAssist, 500);
                     })
                     .catch((error) => {
                         console.error('Error:', error);
