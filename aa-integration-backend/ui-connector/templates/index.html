@@ -140,8 +140,6 @@
                         );
                         // Connect to the Socket.IO server
                         currentSocket = createSocket(JWT, serviceUrl);
-                        // Try to initialize UI modules if conversation profile is already set
-                        setTimeout(initializeAgentAssist, 1000);
                     })
                     .catch((error) => {
                         console.error('Error:', error);
@@ -161,8 +159,6 @@
                         );
                         // Connect to the Socket.IO server
                         currentSocket = createSocket(JWT, serviceUrl);
-                        // Try to initialize UI modules if conversation profile is already set
-                        setTimeout(initializeAgentAssist, 1000);
                     })
                     .catch((error) => {
                         console.error('Error:', error);
@@ -241,9 +237,6 @@
                 location_id = conversation_profile_name.split('/')[3];
                 $('#gcp_project_id').text(project_id);
                 $('#gcp_location_id').text(location_id);
-
-                // Initialize UI modules when profile is set
-                setTimeout(initializeAgentAssist, 500);
                 return false;
             });
             $('form#get_conversation_profile').submit(function (event) {
@@ -281,10 +274,6 @@
                         $('#log').prepend(
                             $('<div/>').text('Received <conversation_name> ' + JSON.stringify(data)).html() + '<br><br>'
                         );
-                        // Re-initialize UI modules with conversation name
-                        setTimeout(initializeAgentAssist, 500);
-                        // Request conversation initialization
-                        setTimeout(requestConversationInitialization, 600);
                     })
                     .catch((error) => {
                         console.error('Error:', error);
@@ -315,9 +304,6 @@
                                 conversation_profile_name = data.conversationProfile;
                                 $('#conversation_profile_name').text(conversation_profile_name);
                                 console.log('Auto-set conversation profile from conversation:', conversation_profile_name);
-                                // Re-initialize UI modules with profile
-                                setTimeout(initializeAgentAssist, 500);
-                                setTimeout(requestConversationInitialization, 600);
                             }
                         })
                         .catch((error) => {
@@ -336,6 +322,9 @@
                     if (ack) {
                         joined_conversations.push(conversation_name);
                         updateJoinedConversationNames();
+                        // Initialize UI modules after joining conversation
+                        setTimeout(initializeAgentAssist, 500);
+                        setTimeout(requestConversationInitialization, 600);
                     }
                 });
                 return false;
