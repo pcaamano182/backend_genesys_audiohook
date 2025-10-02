@@ -231,53 +231,28 @@
                     return;
                 }
 
-                // Load the UI Module Connector script
-                const connectorScript = document.createElement('script');
-                connectorScript.src = 'https://www.gstatic.com/agent-assist-ui-modules/ui_modules_connector.js';
-                connectorScript.onload = () => {
-                    console.log('✅ UI Module Connector script loaded');
+                // Create the UI module element - the container.js handles the connector internally
+                const uiModules = document.createElement('agent-assist-ui-modules');
+                uiModules.id = 'ui-modules';
+                uiModules.setAttribute('features', 'KNOWLEDGE_ASSIST');
+                uiModules.setAttribute('channel', 'chat');
+                uiModules.setAttribute('agent-desktop', 'Custom');
+                uiModules.setAttribute('auth-token', JWT);
+                uiModules.setAttribute('conversation-profile', conversation_profile_name);
+                uiModules.setAttribute('custom-api-endpoint', window.location.origin);
 
-                    // Initialize the connector
-                    const connector = new window.UiModuleConnector();
-                    connector.init({
-                        channel: 'chat',
-                        agentDesktop: 'Custom',
-                        conversationProfileName: conversation_profile_name,
-                        apiConfig: {
-                            authToken: JWT,
-                            customApiEndpoint: window.location.origin
-                        }
-                    });
+                // Clear container and add the module
+                container.innerHTML = '';
+                container.appendChild(uiModules);
 
-                    window.uiConnector = connector;
-                    console.log('✅ UI Module Connector initialized');
-
-                    // Now create the UI module element
-                    const uiModules = document.createElement('agent-assist-ui-modules');
-                    uiModules.id = 'ui-modules';
-                    uiModules.setAttribute('features', 'KNOWLEDGE_ASSIST');
-                    uiModules.setAttribute('channel', 'chat');
-                    uiModules.setAttribute('agent-desktop', 'Custom');
-                    uiModules.setAttribute('auth-token', JWT);
-                    uiModules.setAttribute('conversation-profile', conversation_profile_name);
+                // Wait a moment for the element to be in DOM, then set conversation name
+                setTimeout(() => {
                     uiModules.setAttribute('conversation-name', conversation_name);
-                    uiModules.setAttribute('custom-api-endpoint', window.location.origin);
-                    uiModules.setAttribute('namespace', 'ui-connector-demo');
-                    uiModules.setAttribute('omit-script-nonce', 'true');
+                    console.log('✅ Set conversation-name on mounted element:', conversation_name);
+                }, 200);
 
-                    // Clear container and add the module
-                    container.innerHTML = '';
-                    container.appendChild(uiModules);
-
-                    window.uiModulesElement = uiModules;
-                    console.log('✅ UI Module element created and added to DOM');
-                };
-
-                connectorScript.onerror = () => {
-                    console.error('❌ Failed to load UI Module Connector script');
-                };
-
-                document.head.appendChild(connectorScript);
+                window.uiModulesElement = uiModules;
+                console.log('✅ UI Module element created with profile:', conversation_profile_name);
             }
 
             // Request conversation initialization after conversation is created
