@@ -190,7 +190,27 @@
 
                 eventsToMonitor.forEach(eventName => {
                     window.addEventListener(eventName, (event) => {
-                        console.log('UI Module requested:', eventName, event.detail);
+                        console.log('🔔 UI Module requested:', eventName, event.detail);
+
+                        // Auto-respond to conversation-profile-requested
+                        if (eventName === 'conversation-profile-requested' && conversation_profile_name && JWT) {
+                            console.log('Auto-fetching conversation profile...');
+                            fetch(serviceUrl + versionUrl + conversation_profile_name, {
+                                method: 'GET',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': JWT,
+                                },
+                            })
+                                .then(response => response.json())
+                                .then(data => {
+                                    dispatchAgentAssistEvent('conversation-profile-received', data);
+                                    console.log('✅ Conversation profile dispatched');
+                                })
+                                .catch((error) => {
+                                    console.error('❌ Error fetching conversation profile:', error);
+                                });
+                        }
                     });
                 });
             }
