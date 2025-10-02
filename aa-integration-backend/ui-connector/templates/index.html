@@ -223,6 +223,26 @@
                         }
                     });
                     console.log('Conversation initialized event dispatched');
+
+                    // Fetch and dispatch conversation details
+                    fetch(serviceUrl + versionUrl + conversation_name, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': JWT,
+                        },
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            dispatchAgentAssistEvent('conversation-details-received', {
+                                conversationName: conversation_name,
+                                payload: data
+                            });
+                            console.log('Conversation details dispatched');
+                        })
+                        .catch((error) => {
+                            console.error('Error fetching conversation details:', error);
+                        });
                 }
             }
 
