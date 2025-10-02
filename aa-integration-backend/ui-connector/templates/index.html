@@ -231,10 +231,10 @@
                     return;
                 }
 
-                // Create the UI module element - the container.js handles the connector internally
+                // Create the UI module element with TRANSCRIPT to show conversation history
                 const uiModules = document.createElement('agent-assist-ui-modules');
                 uiModules.id = 'ui-modules';
-                uiModules.setAttribute('features', 'KNOWLEDGE_ASSIST');
+                uiModules.setAttribute('features', 'TRANSCRIPT');
                 uiModules.setAttribute('channel', 'chat');
                 uiModules.setAttribute('agent-desktop', 'Custom');
                 uiModules.setAttribute('auth-token', JWT);
