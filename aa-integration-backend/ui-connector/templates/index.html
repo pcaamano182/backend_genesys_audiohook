@@ -172,6 +172,32 @@
                 console.log('Dispatched event:', eventName, detail);
             }
 
+            // Add event listeners to debug what the UI module is requesting
+            function setupDebugListeners() {
+                const eventsToMonitor = [
+                    'conversation-profile-requested',
+                    'conversation-model-requested',
+                    'list-messages-requested',
+                    'patch-answer-record-requested',
+                    'article-search-requested',
+                    'dialogflow-api-error',
+                    'dialogflow-api-authentication-error',
+                    'api-connector-initialized',
+                    'agent-desktop-connector-initialized',
+                    'api-connector-initialization-failed',
+                    'agent-desktop-connector-initialization-failed'
+                ];
+
+                eventsToMonitor.forEach(eventName => {
+                    window.addEventListener(eventName, (event) => {
+                        console.log('UI Module requested:', eventName, event.detail);
+                    });
+                });
+            }
+
+            // Call this on page load
+            setupDebugListeners();
+
             // Initialize Agent Assist UI Modules - only called after participants are created
             function initializeAgentAssist() {
                 const container = document.getElementById('agent-assist-container');
@@ -209,6 +235,11 @@
                     'custom-api-endpoint': window.location.origin,
                     'namespace': 'ui-connector-demo'
                 });
+
+                // Make the element accessible for debugging
+                window.uiModulesElement = uiModules;
+                console.log('UI Module element stored in window.uiModulesElement for debugging');
+                console.log('To inspect: console.log(window.uiModulesElement)');
             }
 
             // Request conversation initialization after conversation is created
