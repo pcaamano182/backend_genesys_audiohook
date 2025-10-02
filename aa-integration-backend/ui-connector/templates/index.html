@@ -221,12 +221,18 @@
                 uiModules.setAttribute('agent-desktop', 'Custom');
                 uiModules.setAttribute('auth-token', JWT);
                 uiModules.setAttribute('conversation-profile', conversation_profile_name);
-                uiModules.setAttribute('conversation-name', conversation_name);
                 uiModules.setAttribute('custom-api-endpoint', window.location.origin);
+                uiModules.setAttribute('show-header', 'true');
 
                 // Clear container and add the module
                 container.innerHTML = '';
                 container.appendChild(uiModules);
+
+                // Set conversation name after element is in DOM
+                setTimeout(() => {
+                    uiModules.setAttribute('conversation-name', conversation_name);
+                    console.log('Set conversation-name attribute on mounted element');
+                }, 100);
 
                 console.log('Agent Assist UI Modules initialized with:', {
                     'auth-token': JWT.substring(0, 20) + '...',
