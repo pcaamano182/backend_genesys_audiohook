@@ -299,6 +299,31 @@
                 location_id = conversation_name.split('/')[3];
                 $('#gcp_project_id').text(project_id);
                 $('#gcp_location_id').text(location_id);
+
+                // Fetch conversation to get the profile
+                if (JWT && conversation_name) {
+                    fetch(serviceUrl + versionUrl + conversation_name, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': JWT,
+                        },
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.conversationProfile) {
+                                conversation_profile_name = data.conversationProfile;
+                                $('#conversation_profile_name').text(conversation_profile_name);
+                                console.log('Auto-set conversation profile from conversation:', conversation_profile_name);
+                                // Re-initialize UI modules with profile
+                                setTimeout(initializeAgentAssist, 500);
+                                setTimeout(requestConversationInitialization, 600);
+                            }
+                        })
+                        .catch((error) => {
+                            console.error('Error fetching conversation:', error);
+                        });
+                }
                 return false;
             });
             $('form#join').submit(function (event) {
