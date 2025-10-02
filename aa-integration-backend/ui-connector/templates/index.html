@@ -211,8 +211,8 @@
                     return;
                 }
 
-                // Create the UI module element dynamically
-                const uiModules = document.createElement('agent-assist-ui-modules');
+                // Create the UI module container element dynamically
+                const uiModules = document.createElement('agent-assist-ui-modules-container');
                 uiModules.id = 'ui-modules';
                 uiModules.setAttribute('features', 'SMART_REPLY,ARTICLE_SUGGESTION');
                 uiModules.setAttribute('channel', 'chat');
@@ -221,8 +221,6 @@
                 uiModules.setAttribute('conversation-profile', conversation_profile_name);
                 uiModules.setAttribute('conversation-name', conversation_name);
                 uiModules.setAttribute('custom-api-endpoint', window.location.origin);
-                uiModules.setAttribute('namespace', 'ui-connector-demo');
-                uiModules.setAttribute('omit-script-nonce', 'true');
 
                 // Clear container and add the module
                 container.innerHTML = '';
