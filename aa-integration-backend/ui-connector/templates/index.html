@@ -169,6 +169,13 @@
                     });
             }
 
+            // Helper function to dispatch Agent Assist events
+            function dispatchAgentAssistEvent(eventName, detail) {
+                const event = new CustomEvent(eventName, { detail: detail });
+                window.dispatchEvent(event);
+                console.log('Dispatched event:', eventName, detail);
+            }
+
             // Initialize Agent Assist UI Modules
             function initializeAgentAssist() {
                 const uiModules = document.getElementById('ui-modules');
@@ -197,6 +204,29 @@
                         'conversation_profile_name': !!conversation_profile_name,
                         'uiModules element': !!uiModules
                     });
+                }
+            }
+
+            // Request conversation initialization after conversation is created
+            function requestConversationInitialization() {
+                if (conversation_name) {
+                    dispatchAgentAssistEvent('conversation-initialization-requested', {
+                        conversationName: conversation_name
+                    });
+                }
+            }
+
+            // Notify UI modules that conversation has been initialized
+            function notifyConversationInitialized() {
+                if (conversation_name && end_user_name && human_agent_name) {
+                    dispatchAgentAssistEvent('conversation-initialized', {
+                        conversation: { name: conversation_name },
+                        participants: {
+                            END_USER: { name: end_user_name, role: 'END_USER' },
+                            HUMAN_AGENT: { name: human_agent_name, role: 'HUMAN_AGENT' }
+                        }
+                    });
+                    console.log('Conversation initialized event dispatched');
                 }
             }
 
@@ -253,6 +283,8 @@
                         );
                         // Re-initialize UI modules with conversation name
                         setTimeout(initializeAgentAssist, 500);
+                        // Request conversation initialization
+                        setTimeout(requestConversationInitialization, 600);
                     })
                     .catch((error) => {
                         console.error('Error:', error);
@@ -338,6 +370,8 @@
                         $('#log').prepend(
                             $('<div/>').text('Received <human_agent_name> ' + JSON.stringify(data)).html() + '<br><br>'
                         );
+                        // Notify UI modules that conversation is fully initialized
+                        setTimeout(notifyConversationInitialized, 500);
                     })
                     .catch((error) => {
                         console.error('Error:', error);
@@ -345,6 +379,7 @@
                 return false;
             });
             $('form#user_send').submit(function (event) {
+                const userMessage = $('#user_send_message').val();
                 fetch(serviceUrl + versionUrl + end_user_name + ':analyzeContent', {
                     method: 'POST',
                     headers: {
@@ -352,13 +387,21 @@
                         'Authorization': JWT,
                     },
                     body: JSON.stringify(
-                        { text_input: { languageCode: 'en-US', text: $('#user_send_message').val() } }),
+                        { text_input: { languageCode: 'en-US', text: userMessage } }),
                 })
                     .then(response => response.json())
                     .then(data => {
                         $('#log').prepend(
                             $('<div/>').text('Received <analyzeContent response for user> ' + JSON.stringify(data)).html() + '<br><br>'
                         );
+                        // Dispatch event for UI modules
+                        dispatchAgentAssistEvent('analyze-content-response-received', {
+                            conversationName: conversation_name,
+                            payload: {
+                                type: 'text',
+                                response: data
+                            }
+                        });
                     })
                     .catch((error) => {
                         console.error('Error:', error);
@@ -366,6 +409,7 @@
                 return false;
             });
             $('form#agent_send').submit(function (event) {
+                const agentMessage = $('#agent_send_message').val();
                 fetch(serviceUrl + versionUrl + human_agent_name + ':analyzeContent', {
                     method: 'POST',
                     headers: {
@@ -373,13 +417,21 @@
                         'Authorization': JWT,
                     },
                     body: JSON.stringify(
-                        { text_input: { languageCode: 'en-US', text: $('#agent_send_message').val() } }),
+                        { text_input: { languageCode: 'en-US', text: agentMessage } }),
                 })
                     .then(response => response.json())
                     .then(data => {
                         $('#log').prepend(
                             $('<div/>').text('Received <analyzeContent response for agent> ' + JSON.stringify(data)).html() + '<br><br>'
                         );
+                        // Dispatch event for UI modules
+                        dispatchAgentAssistEvent('analyze-content-response-received', {
+                            conversationName: conversation_name,
+                            payload: {
+                                type: 'text',
+                                response: data
+                            }
+                        });
                     })
                     .catch((error) => {
                         console.error('Error:', error);
