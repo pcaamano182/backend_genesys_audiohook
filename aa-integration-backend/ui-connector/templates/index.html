@@ -175,6 +175,7 @@
             // Initialize Agent Assist UI Modules
             function initializeAgentAssist() {
                 const uiModules = document.getElementById('ui-modules');
+                const container = document.getElementById('agent-assist-container');
                 if (uiModules && JWT && conversation_profile_name) {
                     uiModules.setAttribute('auth-token', JWT);
                     uiModules.setAttribute('conversation-profile', conversation_profile_name);
@@ -185,6 +186,11 @@
                     if (conversation_name) {
                         uiModules.setAttribute('conversation-name', conversation_name);
                         console.log('Set conversation name:', conversation_name);
+                    }
+
+                    // Show the container now that attributes are set
+                    if (container) {
+                        container.style.display = 'block';
                     }
 
                     console.log('Agent Assist UI Modules initialized with:', {
@@ -650,7 +656,7 @@
 
     <!-- Agent Assist UI Modules Container -->
     <h2>Agent Assist</h2>
-    <div id="agent-assist-container">
+    <div id="agent-assist-container" style="display: none;">
         <agent-assist-ui-modules
             id="ui-modules"
             features="TRANSCRIPT"
