@@ -27,8 +27,9 @@
         crossorigin="anonymous"></script>
     <!-- Google Agent Assist UI Modules -->
     <script src="https://www.gstatic.com/external_hosted/document_register_element/document-register-element.js"></script>
-    <script src="https://www.gstatic.com/agent-assist-ui-modules/smart_reply.js"></script>
-    <script src="https://www.gstatic.com/agent-assist-ui-modules/knowledge_assist.js"></script>
+    <script src="https://www.gstatic.com/agent-assist-ui-modules/container.js"></script>
+    <script src="https://www.gstatic.com/agent-assist-ui-modules/transcript.js"></script>
+    <script src="https://www.gstatic.com/agent-assist-ui-modules/common.js"></script>
     <style>
         #agent-assist-container {
             background: #f8f9fa;
@@ -37,12 +38,10 @@
             margin: 20px 0;
         }
 
-        agent-assist-ui-modules,
-        agent-assist-ui-modules-container {
+        agent-assist-ui-modules {
             display: block;
             width: 100%;
             min-height: 400px;
-            border: 1px solid #ddd;
         }
 
         .transcript-message {
@@ -212,53 +211,33 @@
                     return;
                 }
 
-                // Create individual UI modules - using base connector approach
-                // First load the base connector
-                const connectorScript = document.createElement('script');
-                connectorScript.src = 'https://www.gstatic.com/agent-assist-ui-modules/ui_modules_connector.js';
-                connectorScript.onload = () => {
-                    console.log('UI Modules Connector loaded');
+                // Create the UI module container element dynamically
+                const uiModules = document.createElement('agent-assist-ui-modules-container');
+                uiModules.id = 'ui-modules';
+                uiModules.setAttribute('features', 'SMART_REPLY,ARTICLE_SUGGESTION');
+                uiModules.setAttribute('channel', 'chat');
+                uiModules.setAttribute('agent-desktop', 'Custom');
+                uiModules.setAttribute('auth-token', JWT);
+                uiModules.setAttribute('conversation-profile', conversation_profile_name);
+                uiModules.setAttribute('conversation-name', conversation_name);
+                uiModules.setAttribute('custom-api-endpoint', window.location.origin);
 
-                    // Initialize the connector
-                    const connector = new window.UiModuleConnector();
-                    connector.init({
-                        channel: 'chat',
-                        agentDesktop: 'Custom',
-                        conversationProfileName: conversation_profile_name,
-                        apiConfig: {
-                            authToken: JWT,
-                            customApiEndpoint: window.location.origin
-                        }
-                    });
+                // Clear container and add the module
+                container.innerHTML = '';
+                container.appendChild(uiModules);
 
-                    window.uiConnector = connector;
-                    console.log('UI Connector initialized');
-
-                    // Now create the individual modules
-                    const smartReplyModule = document.createElement('agent-assist-smart-reply');
-                    const knowledgeModule = document.createElement('agent-assist-knowledge-assist');
-                    knowledgeModule.setAttribute('features', 'ARTICLE_SUGGESTION');
-
-                    container.innerHTML = '';
-                    container.appendChild(smartReplyModule);
-                    container.appendChild(knowledgeModule);
-
-                    console.log('Individual modules created');
-
-                    // Make elements accessible for debugging
-                    window.smartReplyModule = smartReplyModule;
-                    window.knowledgeModule = knowledgeModule;
-                    console.log('Modules stored in window.smartReplyModule and window.knowledgeModule');
-                };
-
-                document.head.appendChild(connectorScript);
-
-                console.log('Agent Assist UI Modules initialization started with:', {
+                console.log('Agent Assist UI Modules initialized with:', {
                     'auth-token': JWT.substring(0, 20) + '...',
                     'conversation-profile': conversation_profile_name,
                     'conversation-name': conversation_name,
-                    'custom-api-endpoint': window.location.origin
+                    'custom-api-endpoint': window.location.origin,
+                    'namespace': 'ui-connector-demo'
                 });
+
+                // Make the element accessible for debugging
+                window.uiModulesElement = uiModules;
+                console.log('UI Module element stored in window.uiModulesElement for debugging');
+                console.log('To inspect: console.log(window.uiModulesElement)');
             }
 
             // Request conversation initialization after conversation is created
