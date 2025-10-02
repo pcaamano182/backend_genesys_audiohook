@@ -259,6 +259,11 @@
 
                     // Give the module time to initialize, then dispatch events
                     setTimeout(() => {
+                        // CRITICAL: Dispatch active-conversation-selected to tell modules which conversation is active
+                        dispatchAgentAssistEvent('active-conversation-selected', {
+                            conversationName: conversation_name
+                        });
+
                         dispatchAgentAssistEvent('conversation-initialization-requested', {
                             conversationName: conversation_name
                         });
