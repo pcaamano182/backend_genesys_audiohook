@@ -244,22 +244,21 @@
                     container.appendChild(knowledgeModule);
 
                     console.log('Individual modules created');
+
+                    // Make elements accessible for debugging
+                    window.smartReplyModule = smartReplyModule;
+                    window.knowledgeModule = knowledgeModule;
+                    console.log('Modules stored in window.smartReplyModule and window.knowledgeModule');
                 };
 
                 document.head.appendChild(connectorScript);
 
-                console.log('Agent Assist UI Modules initialized with:', {
+                console.log('Agent Assist UI Modules initialization started with:', {
                     'auth-token': JWT.substring(0, 20) + '...',
                     'conversation-profile': conversation_profile_name,
                     'conversation-name': conversation_name,
-                    'custom-api-endpoint': window.location.origin,
-                    'namespace': 'ui-connector-demo'
+                    'custom-api-endpoint': window.location.origin
                 });
-
-                // Make the element accessible for debugging
-                window.uiModulesElement = uiModules;
-                console.log('UI Module element stored in window.uiModulesElement for debugging');
-                console.log('To inspect: console.log(window.uiModulesElement)');
             }
 
             // Request conversation initialization after conversation is created
