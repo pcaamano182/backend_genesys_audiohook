@@ -245,6 +245,16 @@
                     });
                     window.uiConnector = connector;
                     console.log('✅ UiModulesConnector initialized for V2');
+
+                    // Set the active conversation on the connector
+                    setTimeout(() => {
+                        if (connector.setActiveConversation) {
+                            connector.setActiveConversation(conversation_name);
+                            console.log('✅ Active conversation set on connector:', conversation_name);
+                        } else {
+                            console.log('ℹ️ setActiveConversation method not available on connector');
+                        }
+                    }, 500);
                 } else {
                     console.error('❌ UiModulesConnector not available - v1/common.js may not have loaded');
                 }
