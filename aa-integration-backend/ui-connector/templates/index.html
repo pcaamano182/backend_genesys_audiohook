@@ -247,7 +247,7 @@
                 window.uiModulesElement = uiModules;
                 console.log('✅ UI Module V2 created with session:', conversation_name);
 
-                // Check connector status after a delay
+                // Check connector status and try to trigger initialization
                 setTimeout(() => {
                     console.log('🔍 Checking connector status...');
                     console.log('Module attributes:', {
@@ -257,10 +257,19 @@
                         conversationProfile: uiModules.getAttribute('conversation-profile'),
                         customApiEndpoint: uiModules.getAttribute('custom-api-endpoint')
                     });
-                    console.log('To check if connectors initialized, look for these events in console:');
-                    console.log('- 🔔 UI Module requested: api-connector-initialized');
-                    console.log('- 🔔 UI Module requested: agent-desktop-connector-initialized');
-                }, 2000);
+
+                    // Manually dispatch connector initialization events
+                    console.log('🔧 Manually triggering connector initialization...');
+                    dispatchAgentAssistEvent('api-connector-initialized', {});
+                    dispatchAgentAssistEvent('agent-desktop-connector-initialized', {});
+
+                    // Dispatch active conversation
+                    dispatchAgentAssistEvent('active-conversation-selected', {
+                        conversationName: conversation_name
+                    });
+
+                    console.log('✅ Connector initialization events dispatched');
+                }, 1000);
             }
 
             // Request conversation initialization after conversation is created
