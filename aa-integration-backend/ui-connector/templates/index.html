@@ -182,7 +182,9 @@
                     'api-connector-initialized',
                     'agent-desktop-connector-initialized',
                     'api-connector-initialization-failed',
-                    'agent-desktop-connector-initialization-failed'
+                    'agent-desktop-connector-initialization-failed',
+                    'event-based-connector-initialized',
+                    'event-based-connector-initialization-failed'
                 ];
 
                 eventsToMonitor.forEach(eventName => {
@@ -244,6 +246,21 @@
 
                 window.uiModulesElement = uiModules;
                 console.log('✅ UI Module V2 created with session:', conversation_name);
+
+                // Check connector status after a delay
+                setTimeout(() => {
+                    console.log('🔍 Checking connector status...');
+                    console.log('Module attributes:', {
+                        features: uiModules.getAttribute('features'),
+                        sessionId: uiModules.getAttribute('session-id'),
+                        authToken: uiModules.getAttribute('auth-token') ? 'SET' : 'NOT SET',
+                        conversationProfile: uiModules.getAttribute('conversation-profile'),
+                        customApiEndpoint: uiModules.getAttribute('custom-api-endpoint')
+                    });
+                    console.log('To check if connectors initialized, look for these events in console:');
+                    console.log('- 🔔 UI Module requested: api-connector-initialized');
+                    console.log('- 🔔 UI Module requested: agent-desktop-connector-initialized');
+                }, 2000);
             }
 
             // Request conversation initialization after conversation is created
