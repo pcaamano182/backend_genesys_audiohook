@@ -277,10 +277,12 @@
                 window.uiModulesElement = uiModules;
                 console.log('✅ UI Module V2 created with session:', conversation_name);
 
-                // Check connector status and try to trigger initialization
+                // Comprehensive debugging
                 setTimeout(() => {
-                    console.log('🔍 Checking connector status...');
-                    console.log('Module attributes:', {
+                    console.log('=== COMPREHENSIVE DEBUG INFO ===');
+
+                    console.log('1. Module Element:', uiModules);
+                    console.log('2. Module Attributes:', {
                         features: uiModules.getAttribute('features'),
                         sessionId: uiModules.getAttribute('session-id'),
                         authToken: uiModules.getAttribute('auth-token') ? 'SET' : 'NOT SET',
@@ -288,18 +290,33 @@
                         customApiEndpoint: uiModules.getAttribute('custom-api-endpoint')
                     });
 
-                    // Manually dispatch connector initialization events
-                    console.log('🔧 Manually triggering connector initialization...');
-                    dispatchAgentAssistEvent('api-connector-initialized', {});
-                    dispatchAgentAssistEvent('agent-desktop-connector-initialized', {});
+                    console.log('3. Connector Status:', window.uiConnector);
+                    console.log('4. Module innerHTML:', uiModules.innerHTML);
+                    console.log('5. Module shadowRoot:', uiModules.shadowRoot);
 
-                    // Dispatch active conversation
-                    dispatchAgentAssistEvent('active-conversation-selected', {
-                        conversationName: conversation_name
-                    });
+                    // List all properties and methods on the connector
+                    if (window.uiConnector) {
+                        console.log('6. Connector methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(window.uiConnector)));
+                    }
 
-                    console.log('✅ Connector initialization events dispatched');
-                }, 1000);
+                    // List all properties on the module element
+                    console.log('7. Module element properties:', Object.getOwnPropertyNames(uiModules));
+
+                    // Check what events the module is listening for
+                    console.log('8. Check Network tab for API requests to /v2beta1/');
+                    console.log('9. Check if module has registered event listeners');
+
+                    // Try to inspect the module's internal state
+                    if (uiModules.shadowRoot) {
+                        console.log('10. Shadow DOM content:', uiModules.shadowRoot.innerHTML);
+                    }
+
+                    console.log('=== END DEBUG INFO ===');
+                    console.log('NEXT STEPS:');
+                    console.log('1. Send a message and watch Network tab for API calls');
+                    console.log('2. Look for any errors in console');
+                    console.log('3. Check what the shadowRoot contains');
+                }, 2000);
             }
 
             // Request conversation initialization after conversation is created
