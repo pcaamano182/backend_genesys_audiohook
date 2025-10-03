@@ -259,11 +259,10 @@
                     console.error('❌ UiModulesConnector not available - v1/common.js may not have loaded');
                 }
 
-                // Create the UI module V2 element matching the conversation profile features
-                // Your profile has KNOWLEDGE_ASSIST (proactive generative knowledge assist)
+                // Create the UI module V2 element with all requested features
                 const uiModules = document.createElement('agent-assist-ui-modules-v2');
                 uiModules.id = 'ui-modules';
-                uiModules.setAttribute('features', 'KNOWLEDGE_ASSIST');
+                uiModules.setAttribute('features', 'CONVERSATION_SUMMARIZATION,SMART_REPLY,KNOWLEDGE_SEARCH');
                 uiModules.setAttribute('session-id', conversation_name);
                 uiModules.setAttribute('show-header', 'true');
                 uiModules.setAttribute('auth-token', JWT);
