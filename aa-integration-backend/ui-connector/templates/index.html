@@ -25,7 +25,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js"
         integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ=="
         crossorigin="anonymous"></script>
-    <!-- Google Agent Assist UI Modules V2 -->
+    <!-- Google Agent Assist UI Modules V2 - Requires V1 common.js for connector -->
+    <script src="https://www.gstatic.com/agent-assist-ui-modules/v1/common.js"></script>
     <script src="https://www.gstatic.com/agent-assist-ui-modules/v2/container.js"></script>
     <style>
         #agent-assist-container {
@@ -230,15 +231,30 @@
                     return;
                 }
 
-                // Create the UI module V2 element with available V2 features
+                // Initialize the UiModulesConnector (required for V2)
+                if (window.UiModulesConnector) {
+                    const connector = new window.UiModulesConnector();
+                    connector.init({
+                        channel: 'chat',
+                        agentDesktop: 'Custom',
+                        conversationProfileName: conversation_profile_name,
+                        apiConfig: {
+                            authToken: JWT,
+                            customApiEndpoint: window.location.origin
+                        }
+                    });
+                    window.uiConnector = connector;
+                    console.log('✅ UiModulesConnector initialized for V2');
+                } else {
+                    console.error('❌ UiModulesConnector not available - v1/common.js may not have loaded');
+                }
+
+                // Create the UI module V2 element - connector will provide auth and API config
                 const uiModules = document.createElement('agent-assist-ui-modules-v2');
                 uiModules.id = 'ui-modules';
                 uiModules.setAttribute('features', 'SMART_REPLY,KNOWLEDGE_SEARCH,CONVERSATION_SUMMARIZATION');
                 uiModules.setAttribute('session-id', conversation_name);
                 uiModules.setAttribute('show-header', 'true');
-                uiModules.setAttribute('auth-token', JWT);
-                uiModules.setAttribute('conversation-profile', conversation_profile_name);
-                uiModules.setAttribute('custom-api-endpoint', window.location.origin);
 
                 // Clear container and add the module
                 container.innerHTML = '';
