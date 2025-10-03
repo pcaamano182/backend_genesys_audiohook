@@ -228,10 +228,10 @@
                     return;
                 }
 
-                // Create the UI module V2 element with TRANSCRIPT to show conversation history
+                // Create the UI module V2 element with available V2 features
                 const uiModules = document.createElement('agent-assist-ui-modules-v2');
                 uiModules.id = 'ui-modules';
-                uiModules.setAttribute('features', 'TRANSCRIPT');
+                uiModules.setAttribute('features', 'SMART_REPLY,KNOWLEDGE_SEARCH,CONVERSATION_SUMMARIZATION');
                 uiModules.setAttribute('session-id', conversation_name);
                 uiModules.setAttribute('show-header', 'true');
                 uiModules.setAttribute('auth-token', JWT);
