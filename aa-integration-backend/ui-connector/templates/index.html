@@ -259,12 +259,15 @@
                     console.error('❌ UiModulesConnector not available - v1/common.js may not have loaded');
                 }
 
-                // Create the UI module V2 element - connector will provide auth and API config
+                // Create the UI module V2 element with all required attributes
                 const uiModules = document.createElement('agent-assist-ui-modules-v2');
                 uiModules.id = 'ui-modules';
                 uiModules.setAttribute('features', 'SMART_REPLY,KNOWLEDGE_SEARCH,CONVERSATION_SUMMARIZATION');
                 uiModules.setAttribute('session-id', conversation_name);
                 uiModules.setAttribute('show-header', 'true');
+                uiModules.setAttribute('auth-token', JWT);
+                uiModules.setAttribute('conversation-profile', conversation_profile_name);
+                uiModules.setAttribute('custom-api-endpoint', window.location.origin);
 
                 // Clear container and add the module
                 container.innerHTML = '';
