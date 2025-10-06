@@ -189,7 +189,7 @@
 
                 eventsToMonitor.forEach(eventName => {
                     window.addEventListener(eventName, (event) => {
-                        console.log('🔔 UI Module requested:', eventName, event.detail);
+                        console.log('🔔 Event received:', eventName, event.detail);
 
                         // Auto-respond to conversation-profile-requested
                         if (eventName === 'conversation-profile-requested' && conversation_profile_name && JWT) {
@@ -203,8 +203,8 @@
                             })
                                 .then(response => response.json())
                                 .then(data => {
+                                    console.log('Conversation profile received:', data);
                                     dispatchAgentAssistEvent('conversation-profile-received', data);
-                                    console.log('✅ Conversation profile dispatched');
                                 })
                                 .catch((error) => {
                                     console.error('❌ Error fetching conversation profile:', error);
@@ -212,6 +212,15 @@
                         }
                     });
                 });
+
+                // Listen to ALL events to see what's happening
+                const originalDispatch = window.dispatchEvent;
+                window.dispatchEvent = function(event) {
+                    if (event.type && (event.type.includes('agent') || event.type.includes('conversation') || event.type.includes('dialogflow'))) {
+                        console.log('📡 Event dispatched:', event.type, event.detail || event);
+                    }
+                    return originalDispatch.call(this, event);
+                };
             }
 
             // Call this on page load
@@ -247,14 +256,31 @@
                 window.uiModulesContainer = uiContainer;
                 console.log('✅ Managed container created with features:', uiContainer.getAttribute('features'));
 
+                // Check if element is defined
+                console.log('Is agent-assist-ui-modules-container defined?', customElements.get('agent-assist-ui-modules-container'));
+
+                // Listen for errors
+                window.addEventListener('error', (e) => {
+                    console.error('❌ Global error:', e.error, e.message);
+                });
+
                 // Debug after initialization
                 setTimeout(() => {
                     console.log('=== MANAGED CONTAINER DEBUG ===');
-                    console.log('Container element:', uiContainer);
-                    console.log('Container innerHTML:', uiContainer.innerHTML);
-                    console.log('Container shadowRoot:', uiContainer.shadowRoot);
+                    console.log('1. Container element:', uiContainer);
+                    console.log('2. Container innerHTML:', uiContainer.innerHTML);
+                    console.log('3. Container shadowRoot:', uiContainer.shadowRoot);
+                    console.log('4. Container attributes:', Array.from(uiContainer.attributes).map(a => `${a.name}="${a.value}"`));
+                    console.log('5. Is connected to DOM?', uiContainer.isConnected);
+                    console.log('6. Parent element:', uiContainer.parentElement);
+                    console.log('7. customElements defined?', typeof customElements);
+                    console.log('8. Check console for any initialization errors');
+
+                    // Try to inspect the element's prototype
+                    console.log('9. Element constructor:', uiContainer.constructor.name);
+                    console.log('10. Element properties:', Object.getOwnPropertyNames(uiContainer));
                     console.log('=== END DEBUG ===');
-                }, 2000);
+                }, 3000);
             }
 
             // Request conversation initialization after conversation is created
