@@ -41,8 +41,12 @@ audiohook_bp = Blueprint("audiohook", __name__)
 sock = Sock(audiohook_bp)
 
 # Initialize Genesys Cloud API client
-genesys_region = PureCloudPlatformClientV2.PureCloudRegionHosts.us_east_1
+# Default to us_east_1, can be overridden with GENESYS_REGION env var
+genesys_region_name = os.environ.get('GENESYS_REGION', 'us_east_1')
+genesys_region = getattr(PureCloudPlatformClientV2.PureCloudRegionHosts, genesys_region_name, PureCloudPlatformClientV2.PureCloudRegionHosts.us_east_1)
 PureCloudPlatformClientV2.configuration.host = genesys_region.get_api_host()
+
+logging.info("🌍 Genesys Cloud Region configured: %s -> %s", genesys_region_name, PureCloudPlatformClientV2.configuration.host)
 
 
 def get_genesys_conversation_details(conversation_id: str):
@@ -59,14 +63,23 @@ def get_genesys_conversation_details(conversation_id: str):
         client_id = config.genesys_client_id
         client_secret = config.genesys_client_secret
 
+        # Debug: Log credential status (NOT the actual values for security)
+        logging.info("🔐 Genesys OAuth Credentials Check:")
+        logging.info("  Client ID present: %s", bool(client_id))
+        logging.info("  Client ID length: %s", len(client_id) if client_id else 0)
+        logging.info("  Client Secret present: %s", bool(client_secret))
+        logging.info("  Client Secret length: %s", len(client_secret) if client_secret else 0)
+
         if not client_id or not client_secret:
             logging.warning("Genesys API credentials not configured")
             return None
 
         # Authenticate
+        logging.info("🔑 Attempting Genesys OAuth authentication...")
         api_client = PureCloudPlatformClientV2.api_client.ApiClient().get_client_credentials_token(
             client_id, client_secret
         )
+        logging.info("✅ Genesys OAuth authentication successful")
 
         # Get conversation details
         conversations_api = PureCloudPlatformClientV2.ConversationsApi(api_client)
