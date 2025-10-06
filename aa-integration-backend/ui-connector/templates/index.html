@@ -233,9 +233,17 @@
                     return;
                 }
 
-                // Initialize the UiModuleConnector (required for individual modules)
-                if (window.UiModuleConnector) {
-                    const connector = new window.UiModuleConnector();
+                // Check what connector classes are available
+                console.log('Available on window:', {
+                    UiModuleConnector: typeof window.UiModuleConnector,
+                    UiModulesConnector: typeof window.UiModulesConnector,
+                    agentAssistKeys: Object.keys(window).filter(k => k.toLowerCase().includes('agent') || k.toLowerCase().includes('connector'))
+                });
+
+                // Initialize the UiModuleConnector if available
+                const ConnectorClass = window.UiModuleConnector || window.UiModulesConnector;
+                if (ConnectorClass) {
+                    const connector = new ConnectorClass();
                     connector.init({
                         channel: 'chat',
                         agentDesktop: 'Custom',
@@ -246,9 +254,9 @@
                         }
                     });
                     window.uiConnector = connector;
-                    console.log('✅ UiModuleConnector initialized');
+                    console.log('✅ Connector initialized:', ConnectorClass.name);
                 } else {
-                    console.error('❌ UiModuleConnector not available - ui_modules_connector.js may not have loaded');
+                    console.warn('⚠️ No connector class found - modules may use event-based communication');
                 }
 
                 // Create individual UI module elements
