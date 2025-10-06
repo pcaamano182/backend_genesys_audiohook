@@ -34,6 +34,7 @@ class AudiohookConfig:
     redis_port: int
     genesys_client_id: str = field(default=None)
     genesys_client_secret: str = field(default=None)
+    genesys_region: str = field(default='us_east_1')
     log_level: str = field(default='INFO')
     timeout: int = field(default=2)
     rate: int = field(default=8000)
@@ -75,5 +76,6 @@ config = AudiohookConfig(
     redis_host=os.environ.get('REDISHOST'),
     redis_port=int(os.environ.get('REDISPORT')),
     genesys_client_id=os.environ.get('GENESYS_CLIENT_ID'),
-    genesys_client_secret=os.environ.get('GENESYS_CLIENT_SECRET')
+    genesys_client_secret=os.environ.get('GENESYS_CLIENT_SECRET'),
+    genesys_region=os.environ.get('GENESYS_REGION', 'us_east_1')
 )

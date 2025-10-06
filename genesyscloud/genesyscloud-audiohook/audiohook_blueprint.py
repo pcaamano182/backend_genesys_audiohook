@@ -41,12 +41,11 @@ audiohook_bp = Blueprint("audiohook", __name__)
 sock = Sock(audiohook_bp)
 
 # Initialize Genesys Cloud API client
-# Default to us_east_1, can be overridden with GENESYS_REGION env var
-genesys_region_name = os.environ.get('GENESYS_REGION', 'us_east_1')
-genesys_region = getattr(PureCloudPlatformClientV2.PureCloudRegionHosts, genesys_region_name, PureCloudPlatformClientV2.PureCloudRegionHosts.us_east_1)
+# Region loaded from config (GENESYS_REGION env var, defaults to us_east_1)
+genesys_region = getattr(PureCloudPlatformClientV2.PureCloudRegionHosts, config.genesys_region, PureCloudPlatformClientV2.PureCloudRegionHosts.us_east_1)
 PureCloudPlatformClientV2.configuration.host = genesys_region.get_api_host()
 
-logging.info("🌍 Genesys Cloud Region configured: %s -> %s", genesys_region_name, PureCloudPlatformClientV2.configuration.host)
+logging.info("🌍 Genesys Cloud Region configured: %s -> %s", config.genesys_region, PureCloudPlatformClientV2.configuration.host)
 
 
 def get_genesys_conversation_details(conversation_id: str):
