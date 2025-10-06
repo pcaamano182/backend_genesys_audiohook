@@ -214,6 +214,14 @@
                 });
 
                 // Listen to ALL events to see what's happening
+                const originalAddEventListener = window.addEventListener;
+                window.addEventListener = function(type, listener, options) {
+                    if (type && (type.includes('agent') || type.includes('conversation') || type.includes('dialogflow') || type.includes('connector'))) {
+                        console.log('👂 Module is listening for event:', type);
+                    }
+                    return originalAddEventListener.call(this, type, listener, options);
+                };
+
                 const originalDispatch = window.dispatchEvent;
                 window.dispatchEvent = function(event) {
                     if (event.type && (event.type.includes('agent') || event.type.includes('conversation') || event.type.includes('dialogflow'))) {
