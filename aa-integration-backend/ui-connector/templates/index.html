@@ -227,7 +227,7 @@
             setupDebugListeners();
 
             // Initialize Agent Assist UI Modules - only called after participants are created
-            function initializeAgentAssist() {
+            async function initializeAgentAssist() {
                 const container = document.getElementById('agent-assist-container');
 
                 if (!JWT || !conversation_profile_name || !conversation_name) {
@@ -238,6 +238,11 @@
                     });
                     return;
                 }
+
+                // Wait for the custom element to be defined
+                console.log('⏳ Waiting for agent-assist-ui-modules-container to be defined...');
+                await customElements.whenDefined('agent-assist-ui-modules-container');
+                console.log('✅ agent-assist-ui-modules-container is now defined');
 
                 // Create managed container element
                 const uiContainer = document.createElement('agent-assist-ui-modules-container');
@@ -256,31 +261,14 @@
                 window.uiModulesContainer = uiContainer;
                 console.log('✅ Managed container created with features:', uiContainer.getAttribute('features'));
 
-                // Check if element is defined
-                console.log('Is agent-assist-ui-modules-container defined?', customElements.get('agent-assist-ui-modules-container'));
-
-                // Listen for errors
-                window.addEventListener('error', (e) => {
-                    console.error('❌ Global error:', e.error, e.message);
-                });
-
                 // Debug after initialization
                 setTimeout(() => {
                     console.log('=== MANAGED CONTAINER DEBUG ===');
-                    console.log('1. Container element:', uiContainer);
-                    console.log('2. Container innerHTML:', uiContainer.innerHTML);
-                    console.log('3. Container shadowRoot:', uiContainer.shadowRoot);
-                    console.log('4. Container attributes:', Array.from(uiContainer.attributes).map(a => `${a.name}="${a.value}"`));
-                    console.log('5. Is connected to DOM?', uiContainer.isConnected);
-                    console.log('6. Parent element:', uiContainer.parentElement);
-                    console.log('7. customElements defined?', typeof customElements);
-                    console.log('8. Check console for any initialization errors');
-
-                    // Try to inspect the element's prototype
-                    console.log('9. Element constructor:', uiContainer.constructor.name);
-                    console.log('10. Element properties:', Object.getOwnPropertyNames(uiContainer));
+                    console.log('1. Container innerHTML:', uiContainer.innerHTML);
+                    console.log('2. Container shadowRoot:', uiContainer.shadowRoot);
+                    console.log('3. Is connected to DOM?', uiContainer.isConnected);
                     console.log('=== END DEBUG ===');
-                }, 3000);
+                }, 2000);
             }
 
             // Request conversation initialization after conversation is created
