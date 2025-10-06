@@ -40,13 +40,6 @@ from PureCloudPlatformClientV2.rest import ApiException
 audiohook_bp = Blueprint("audiohook", __name__)
 sock = Sock(audiohook_bp)
 
-# Initialize Genesys Cloud API client
-# Region loaded from config (GENESYS_REGION env var, defaults to us_east_1)
-genesys_region = getattr(PureCloudPlatformClientV2.PureCloudRegionHosts, config.genesys_region, PureCloudPlatformClientV2.PureCloudRegionHosts.us_east_1)
-PureCloudPlatformClientV2.configuration.host = genesys_region.get_api_host()
-
-logging.info("🌍 Genesys Cloud Region configured: %s -> %s", config.genesys_region, PureCloudPlatformClientV2.configuration.host)
-
 
 def get_genesys_conversation_details(conversation_id: str):
     """Fetch conversation details from Genesys Cloud API.
@@ -58,6 +51,11 @@ def get_genesys_conversation_details(conversation_id: str):
         dict: Conversation details or None if fetch fails
     """
     try:
+        # Configure Genesys Cloud region
+        genesys_region = getattr(PureCloudPlatformClientV2.PureCloudRegionHosts, config.genesys_region, PureCloudPlatformClientV2.PureCloudRegionHosts.us_east_1)
+        PureCloudPlatformClientV2.configuration.host = genesys_region.get_api_host()
+        logging.info("🌍 Genesys Cloud Region: %s -> %s", config.genesys_region, PureCloudPlatformClientV2.configuration.host)
+
         # Get OAuth credentials from environment
         client_id = config.genesys_client_id
         client_secret = config.genesys_client_secret
@@ -70,7 +68,7 @@ def get_genesys_conversation_details(conversation_id: str):
         logging.info("  Client Secret length: %s", len(client_secret) if client_secret else 0)
 
         if not client_id or not client_secret:
-            logging.warning("Genesys API credentials not configured")
+            logging.warning("⚠️ Genesys API credentials not configured - skipping conversation details fetch")
             return None
 
         # Authenticate
