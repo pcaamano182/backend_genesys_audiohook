@@ -33,8 +33,71 @@ from audiohook_config import config
 from dialogflow_api import (DialogflowAPI, await_redis, create_conversation_name,
                             find_participant_by_role, location_id, project)
 
+# Genesys Cloud SDK imports
+import PureCloudPlatformClientV2
+from PureCloudPlatformClientV2.rest import ApiException
+
 audiohook_bp = Blueprint("audiohook", __name__)
 sock = Sock(audiohook_bp)
+
+# Initialize Genesys Cloud API client
+genesys_region = PureCloudPlatformClientV2.PureCloudRegionHosts.us_east_1
+PureCloudPlatformClientV2.configuration.host = genesys_region.get_api_host()
+
+
+def get_genesys_conversation_details(conversation_id: str):
+    """Fetch conversation details from Genesys Cloud API.
+
+    Args:
+        conversation_id: The Genesys conversation ID
+
+    Returns:
+        dict: Conversation details or None if fetch fails
+    """
+    try:
+        # Get OAuth credentials from environment
+        client_id = config.genesys_client_id
+        client_secret = config.genesys_client_secret
+
+        if not client_id or not client_secret:
+            logging.warning("Genesys API credentials not configured")
+            return None
+
+        # Authenticate
+        api_client = PureCloudPlatformClientV2.api_client.ApiClient().get_client_credentials_token(
+            client_id, client_secret
+        )
+
+        # Get conversation details
+        conversations_api = PureCloudPlatformClientV2.ConversationsApi(api_client)
+        conversation = conversations_api.get_conversation(conversation_id)
+
+        # Log detailed participant information
+        logging.info("=" * 80)
+        logging.info("👥 GENESYS CONVERSATION DETAILS (via SDK):")
+        logging.info("  Conversation ID: %s", conversation_id)
+
+        if conversation.participants:
+            for idx, participant in enumerate(conversation.participants):
+                logging.info("  Participant %d:", idx + 1)
+                logging.info("    - ID: %s", participant.id)
+                logging.info("    - Purpose: %s", participant.purpose)
+                logging.info("    - Name: %s", getattr(participant, 'name', 'N/A'))
+                logging.info("    - User ID: %s", getattr(participant, 'user_id', 'N/A'))
+                logging.info("    - Queue: %s", getattr(participant, 'queue_name', 'N/A'))
+                logging.info("    - Attributes: %s", getattr(participant, 'attributes', {}))
+
+        logging.info("  Conversation Attributes: %s", getattr(conversation, 'attributes', {}))
+        logging.info("=" * 80)
+
+        return conversation
+
+    except ApiException as e:
+        logging.error("❌ Genesys API error fetching conversation: %s", e)
+        return None
+    except Exception as e:
+        logging.error("❌ Error fetching Genesys conversation details: %s", e)
+        return None
 
 
 logging.getLogger()
@@ -269,6 +332,8 @@ def audiohook_connect(ws: Server):
                         "Connection Probe, not creating Dialogflow Conversation")
                     ws.send(json.dumps(audiohook.create_opened_message()))
                 elif conversation_id != DEFAULT_CONVERSATION_ID and open_conversation_state is None:
+                    # Fetch Genesys conversation details via SDK
+                    get_genesys_conversation_details(conversation_id)
                     # Get the first "open" message for real conversation
                     # open_state contains the agent and user thread for
                     # calling streaming_analyze_content
