@@ -25,8 +25,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js"
         integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ=="
         crossorigin="anonymous"></script>
-    <!-- Google Agent Assist UI Modules - Managed Container -->
-    <script src="https://www.gstatic.com/agent-assist-ui-modules/container.js"></script>
+    <!-- Google Agent Assist UI Modules - Loaded dynamically when conversation is ready -->
     <style>
         #agent-assist-container {
             background: #f8f9fa;
@@ -246,6 +245,18 @@
                     });
                     return;
                 }
+
+                // Load the container.js script dynamically
+                console.log('📦 Loading Agent Assist container script...');
+                const script = document.createElement('script');
+                script.src = 'https://www.gstatic.com/agent-assist-ui-modules/container.js';
+                script.onload = () => {
+                    console.log('✅ Container script loaded');
+                };
+                script.onerror = () => {
+                    console.error('❌ Failed to load container script');
+                };
+                document.head.appendChild(script);
 
                 // Wait for the custom element to be defined
                 console.log('⏳ Waiting for agent-assist-ui-modules to be defined...');
