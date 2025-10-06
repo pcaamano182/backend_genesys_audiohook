@@ -25,9 +25,12 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js"
         integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ=="
         crossorigin="anonymous"></script>
-    <!-- Google Agent Assist UI Modules V2 - Requires V1 common.js for connector -->
+    <!-- Google Agent Assist UI Modules - Individual components -->
+    <script src="https://www.gstatic.com/external_hosted/document_register_element/document-register-element.js"></script>
     <script src="https://www.gstatic.com/agent-assist-ui-modules/v1/common.js"></script>
-    <script src="https://www.gstatic.com/agent-assist-ui-modules/v2/container.js"></script>
+    <script src="https://www.gstatic.com/agent-assist-ui-modules/v1/smart_reply.js"></script>
+    <script src="https://www.gstatic.com/agent-assist-ui-modules/v1/knowledge_assist.js"></script>
+    <script src="https://www.gstatic.com/agent-assist-ui-modules/v1/conversation_summarization.js"></script>
     <style>
         #agent-assist-container {
             background: #f8f9fa;
@@ -231,7 +234,7 @@
                     return;
                 }
 
-                // Initialize the UiModulesConnector (required for V2)
+                // Initialize the UiModulesConnector (required for event-based integration)
                 if (window.UiModulesConnector) {
                     const connector = new window.UiModulesConnector();
                     connector.init({
@@ -244,77 +247,63 @@
                         }
                     });
                     window.uiConnector = connector;
-                    console.log('✅ UiModulesConnector initialized for V2');
+                    console.log('✅ UiModulesConnector initialized');
 
                     // Set the active conversation on the connector
                     setTimeout(() => {
                         if (connector.setActiveConversation) {
                             connector.setActiveConversation(conversation_name);
                             console.log('✅ Active conversation set on connector:', conversation_name);
-                        } else {
-                            console.log('ℹ️ setActiveConversation method not available on connector');
                         }
                     }, 500);
                 } else {
                     console.error('❌ UiModulesConnector not available - v1/common.js may not have loaded');
                 }
 
-                // Create the UI module V2 element with all requested features
-                const uiModules = document.createElement('agent-assist-ui-modules-v2');
-                uiModules.id = 'ui-modules';
-                uiModules.setAttribute('features', 'CONVERSATION_SUMMARIZATION,SMART_REPLY,KNOWLEDGE_SEARCH,KNOWLEDGE_ASSIST');
-                uiModules.setAttribute('session-id', conversation_name);
-                uiModules.setAttribute('show-header', 'true');
-                uiModules.setAttribute('auth-token', JWT);
-                uiModules.setAttribute('conversation-profile', conversation_profile_name);
-                uiModules.setAttribute('custom-api-endpoint', window.location.origin);
+                // Create individual UI module elements
+                const smartReply = document.createElement('agent-assist-smart-reply');
+                const knowledgeAssist = document.createElement('agent-assist-knowledge-assist');
+                const conversationSummarization = document.createElement('agent-assist-conversation-summarization');
 
-                // Clear container and add the module
+                // Set attributes on each module
+                const modules = [smartReply, knowledgeAssist, conversationSummarization];
+                modules.forEach(module => {
+                    module.setAttribute('auth-token', JWT);
+                    module.setAttribute('conversation-name', conversation_name);
+                    module.setAttribute('conversation-profile', conversation_profile_name);
+                    module.setAttribute('custom-api-endpoint', window.location.origin);
+                });
+
+                // Clear container and add all modules
                 container.innerHTML = '';
-                container.appendChild(uiModules);
+                container.appendChild(smartReply);
+                container.appendChild(knowledgeAssist);
+                container.appendChild(conversationSummarization);
 
-                window.uiModulesElement = uiModules;
-                console.log('✅ UI Module V2 created with session:', conversation_name);
+                window.uiModules = { smartReply, knowledgeAssist, conversationSummarization };
+                console.log('✅ Individual UI modules created:', {
+                    smartReply: !!smartReply,
+                    knowledgeAssist: !!knowledgeAssist,
+                    conversationSummarization: !!conversationSummarization
+                });
 
                 // Comprehensive debugging
                 setTimeout(() => {
-                    console.log('=== COMPREHENSIVE DEBUG INFO ===');
+                    console.log('=== INDIVIDUAL MODULES DEBUG ===');
+                    console.log('1. Smart Reply:', smartReply);
+                    console.log('   - innerHTML:', smartReply.innerHTML);
+                    console.log('   - shadowRoot:', smartReply.shadowRoot);
 
-                    console.log('1. Module Element:', uiModules);
-                    console.log('2. Module Attributes:', {
-                        features: uiModules.getAttribute('features'),
-                        sessionId: uiModules.getAttribute('session-id'),
-                        authToken: uiModules.getAttribute('auth-token') ? 'SET' : 'NOT SET',
-                        conversationProfile: uiModules.getAttribute('conversation-profile'),
-                        customApiEndpoint: uiModules.getAttribute('custom-api-endpoint')
-                    });
+                    console.log('2. Knowledge Assist:', knowledgeAssist);
+                    console.log('   - innerHTML:', knowledgeAssist.innerHTML);
+                    console.log('   - shadowRoot:', knowledgeAssist.shadowRoot);
 
-                    console.log('3. Connector Status:', window.uiConnector);
-                    console.log('4. Module innerHTML:', uiModules.innerHTML);
-                    console.log('5. Module shadowRoot:', uiModules.shadowRoot);
+                    console.log('3. Conversation Summarization:', conversationSummarization);
+                    console.log('   - innerHTML:', conversationSummarization.innerHTML);
+                    console.log('   - shadowRoot:', conversationSummarization.shadowRoot);
 
-                    // List all properties and methods on the connector
-                    if (window.uiConnector) {
-                        console.log('6. Connector methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(window.uiConnector)));
-                    }
-
-                    // List all properties on the module element
-                    console.log('7. Module element properties:', Object.getOwnPropertyNames(uiModules));
-
-                    // Check what events the module is listening for
-                    console.log('8. Check Network tab for API requests to /v2beta1/');
-                    console.log('9. Check if module has registered event listeners');
-
-                    // Try to inspect the module's internal state
-                    if (uiModules.shadowRoot) {
-                        console.log('10. Shadow DOM content:', uiModules.shadowRoot.innerHTML);
-                    }
-
-                    console.log('=== END DEBUG INFO ===');
-                    console.log('NEXT STEPS:');
-                    console.log('1. Send a message and watch Network tab for API calls');
-                    console.log('2. Look for any errors in console');
-                    console.log('3. Check what the shadowRoot contains');
+                    console.log('4. Connector Status:', window.uiConnector);
+                    console.log('=== END DEBUG ===');
                 }, 2000);
             }
 
