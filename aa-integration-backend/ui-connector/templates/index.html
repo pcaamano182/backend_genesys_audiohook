@@ -26,11 +26,10 @@
         integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ=="
         crossorigin="anonymous"></script>
     <!-- Google Agent Assist UI Modules - Individual components -->
-    <script src="https://www.gstatic.com/external_hosted/document_register_element/document-register-element.js"></script>
-    <script src="https://www.gstatic.com/agent-assist-ui-modules/v1/common.js"></script>
-    <script src="https://www.gstatic.com/agent-assist-ui-modules/v1/smart_reply.js"></script>
-    <script src="https://www.gstatic.com/agent-assist-ui-modules/v1/knowledge_assist.js"></script>
-    <script src="https://www.gstatic.com/agent-assist-ui-modules/v1/conversation_summarization.js"></script>
+    <script src="https://www.gstatic.com/agent-assist-ui-modules/ui_modules_connector.js"></script>
+    <script src="https://www.gstatic.com/agent-assist-ui-modules/smart_reply.js"></script>
+    <script src="https://www.gstatic.com/agent-assist-ui-modules/knowledge_assist.js"></script>
+    <script src="https://www.gstatic.com/agent-assist-ui-modules/summarization.js"></script>
     <style>
         #agent-assist-container {
             background: #f8f9fa;
@@ -234,9 +233,9 @@
                     return;
                 }
 
-                // Initialize the UiModulesConnector (required for event-based integration)
-                if (window.UiModulesConnector) {
-                    const connector = new window.UiModulesConnector();
+                // Initialize the UiModuleConnector (required for individual modules)
+                if (window.UiModuleConnector) {
+                    const connector = new window.UiModuleConnector();
                     connector.init({
                         channel: 'chat',
                         agentDesktop: 'Custom',
@@ -247,17 +246,9 @@
                         }
                     });
                     window.uiConnector = connector;
-                    console.log('✅ UiModulesConnector initialized');
-
-                    // Set the active conversation on the connector
-                    setTimeout(() => {
-                        if (connector.setActiveConversation) {
-                            connector.setActiveConversation(conversation_name);
-                            console.log('✅ Active conversation set on connector:', conversation_name);
-                        }
-                    }, 500);
+                    console.log('✅ UiModuleConnector initialized');
                 } else {
-                    console.error('❌ UiModulesConnector not available - v1/common.js may not have loaded');
+                    console.error('❌ UiModuleConnector not available - ui_modules_connector.js may not have loaded');
                 }
 
                 // Create individual UI module elements
@@ -265,14 +256,8 @@
                 const knowledgeAssist = document.createElement('agent-assist-knowledge-assist');
                 const conversationSummarization = document.createElement('agent-assist-conversation-summarization');
 
-                // Set attributes on each module
-                const modules = [smartReply, knowledgeAssist, conversationSummarization];
-                modules.forEach(module => {
-                    module.setAttribute('auth-token', JWT);
-                    module.setAttribute('conversation-name', conversation_name);
-                    module.setAttribute('conversation-profile', conversation_profile_name);
-                    module.setAttribute('custom-api-endpoint', window.location.origin);
-                });
+                // Set features attribute for Knowledge Assist (supports ARTICLE_SUGGESTION, FAQ, ARTICLE_SEARCH)
+                knowledgeAssist.setAttribute('features', 'ARTICLE_SUGGESTION,ARTICLE_SEARCH');
 
                 // Clear container and add all modules
                 container.innerHTML = '';
