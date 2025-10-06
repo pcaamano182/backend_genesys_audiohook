@@ -239,45 +239,13 @@
                     return;
                 }
 
-                // Check what custom elements are actually registered
-                const registeredElements = [];
-                const elementNames = [
-                    'agent-assist-ui-modules-container',
-                    'agent-assist-container',
-                    'ui-modules-container',
-                    'agent-assist-ui-modules',
-                    'agentassist-ui-modules-container'
-                ];
+                // Wait for the custom element to be defined
+                console.log('⏳ Waiting for agent-assist-ui-modules to be defined...');
+                await customElements.whenDefined('agent-assist-ui-modules');
+                console.log('✅ agent-assist-ui-modules is now defined');
 
-                for (const name of elementNames) {
-                    if (customElements.get(name)) {
-                        registeredElements.push(name);
-                    }
-                }
-
-                console.log('🔍 Registered custom elements from our list:', registeredElements);
-
-                // Wait for the custom element to be defined (with timeout)
-                console.log('⏳ Waiting for agent-assist-ui-modules-container to be defined...');
-                const timeoutPromise = new Promise((resolve) => setTimeout(() => {
-                    console.log('⏰ Timeout waiting for element definition');
-                    resolve(false);
-                }, 5000));
-
-                const definedPromise = customElements.whenDefined('agent-assist-ui-modules-container').then(() => true);
-
-                const isDefined = await Promise.race([definedPromise, timeoutPromise]);
-
-                if (isDefined) {
-                    console.log('✅ agent-assist-ui-modules-container is now defined');
-                } else {
-                    console.error('❌ Element never defined. Registered elements:', registeredElements);
-                    console.log('All window keys with "agent":', Object.keys(window).filter(k => k.toLowerCase().includes('agent')));
-                    return;
-                }
-
-                // Create managed container element
-                const uiContainer = document.createElement('agent-assist-ui-modules-container');
+                // Create managed container element (correct element name)
+                const uiContainer = document.createElement('agent-assist-ui-modules');
                 uiContainer.setAttribute('features', 'SMART_REPLY,ARTICLE_SUGGESTION,ARTICLE_SEARCH,CONVERSATION_SUMMARIZATION');
                 uiContainer.setAttribute('conversation-profile', conversation_profile_name);
                 uiContainer.setAttribute('agent-desktop', 'Custom');
