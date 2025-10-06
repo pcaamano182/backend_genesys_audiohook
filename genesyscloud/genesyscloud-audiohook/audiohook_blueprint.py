@@ -249,6 +249,18 @@ def audiohook_connect(ws: Server):
                 "📨 Handle %s message: %s", message_type, json_message)
             conversation_id = json_message.get("parameters", {}).get(
                 "conversationId", DEFAULT_CONVERSATION_ID)
+
+            # Log all Genesys conversation/participant data
+            logging.info("=" * 80)
+            logging.info("📞 GENESYS AUDIOHOOK DATA:")
+            logging.info("  Message Type: %s", message_type)
+            logging.info("  Conversation ID: %s", conversation_id)
+            logging.info("  Session ID: %s", json_message.get("id", 0))
+            logging.info("  Sequence: %s", json_message.get("seq"))
+            logging.info("  Parameters: %s", json.dumps(json_message.get("parameters", {}), indent=2))
+            logging.info("  Full Message: %s", json.dumps(json_message, indent=2))
+            logging.info("=" * 80)
+
             audiohook.set_session_id(json_message.get("id", 0))
             audiohook.set_client_sequence(json_message.get("seq"))
             if message_type == "open":
