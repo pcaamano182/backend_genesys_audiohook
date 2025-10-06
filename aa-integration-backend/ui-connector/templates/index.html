@@ -25,11 +25,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js"
         integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ=="
         crossorigin="anonymous"></script>
-    <!-- Google Agent Assist UI Modules - Individual components -->
-    <script src="https://www.gstatic.com/agent-assist-ui-modules/ui_modules_connector.js"></script>
-    <script src="https://www.gstatic.com/agent-assist-ui-modules/smart_reply.js"></script>
-    <script src="https://www.gstatic.com/agent-assist-ui-modules/knowledge_assist.js"></script>
-    <script src="https://www.gstatic.com/agent-assist-ui-modules/summarization.js"></script>
+    <!-- Google Agent Assist UI Modules - Managed Container -->
+    <script src="https://www.gstatic.com/agent-assist-ui-modules/container.js"></script>
     <style>
         #agent-assist-container {
             background: #f8f9fa;
@@ -233,69 +230,29 @@
                     return;
                 }
 
-                // Check what connector classes are available
-                console.log('Available on window:', {
-                    UiModuleConnector: typeof window.UiModuleConnector,
-                    UiModulesConnector: typeof window.UiModulesConnector,
-                    agentAssistKeys: Object.keys(window).filter(k => k.toLowerCase().includes('agent') || k.toLowerCase().includes('connector'))
-                });
+                // Create managed container element
+                const uiContainer = document.createElement('agent-assist-ui-modules-container');
+                uiContainer.setAttribute('features', 'SMART_REPLY,ARTICLE_SUGGESTION,ARTICLE_SEARCH,CONVERSATION_SUMMARIZATION');
+                uiContainer.setAttribute('conversation-profile', conversation_profile_name);
+                uiContainer.setAttribute('agent-desktop', 'Custom');
+                uiContainer.setAttribute('auth-token', JWT);
+                uiContainer.setAttribute('channel', 'chat');
+                uiContainer.setAttribute('custom-api-endpoint', window.location.origin);
+                uiContainer.setAttribute('show-header', 'true');
 
-                // Initialize the UiModuleConnector if available
-                const ConnectorClass = window.UiModuleConnector || window.UiModulesConnector;
-                if (ConnectorClass) {
-                    const connector = new ConnectorClass();
-                    connector.init({
-                        channel: 'chat',
-                        agentDesktop: 'Custom',
-                        conversationProfileName: conversation_profile_name,
-                        apiConfig: {
-                            authToken: JWT,
-                            customApiEndpoint: window.location.origin
-                        }
-                    });
-                    window.uiConnector = connector;
-                    console.log('✅ Connector initialized:', ConnectorClass.name);
-                } else {
-                    console.warn('⚠️ No connector class found - modules may use event-based communication');
-                }
-
-                // Create individual UI module elements
-                const smartReply = document.createElement('agent-assist-smart-reply');
-                const knowledgeAssist = document.createElement('agent-assist-knowledge-assist');
-                const conversationSummarization = document.createElement('agent-assist-conversation-summarization');
-
-                // Set features attribute for Knowledge Assist (supports ARTICLE_SUGGESTION, FAQ, ARTICLE_SEARCH)
-                knowledgeAssist.setAttribute('features', 'ARTICLE_SUGGESTION,ARTICLE_SEARCH');
-
-                // Clear container and add all modules
+                // Clear container and add the managed container
                 container.innerHTML = '';
-                container.appendChild(smartReply);
-                container.appendChild(knowledgeAssist);
-                container.appendChild(conversationSummarization);
+                container.appendChild(uiContainer);
 
-                window.uiModules = { smartReply, knowledgeAssist, conversationSummarization };
-                console.log('✅ Individual UI modules created:', {
-                    smartReply: !!smartReply,
-                    knowledgeAssist: !!knowledgeAssist,
-                    conversationSummarization: !!conversationSummarization
-                });
+                window.uiModulesContainer = uiContainer;
+                console.log('✅ Managed container created with features:', uiContainer.getAttribute('features'));
 
-                // Comprehensive debugging
+                // Debug after initialization
                 setTimeout(() => {
-                    console.log('=== INDIVIDUAL MODULES DEBUG ===');
-                    console.log('1. Smart Reply:', smartReply);
-                    console.log('   - innerHTML:', smartReply.innerHTML);
-                    console.log('   - shadowRoot:', smartReply.shadowRoot);
-
-                    console.log('2. Knowledge Assist:', knowledgeAssist);
-                    console.log('   - innerHTML:', knowledgeAssist.innerHTML);
-                    console.log('   - shadowRoot:', knowledgeAssist.shadowRoot);
-
-                    console.log('3. Conversation Summarization:', conversationSummarization);
-                    console.log('   - innerHTML:', conversationSummarization.innerHTML);
-                    console.log('   - shadowRoot:', conversationSummarization.shadowRoot);
-
-                    console.log('4. Connector Status:', window.uiConnector);
+                    console.log('=== MANAGED CONTAINER DEBUG ===');
+                    console.log('Container element:', uiContainer);
+                    console.log('Container innerHTML:', uiContainer.innerHTML);
+                    console.log('Container shadowRoot:', uiContainer.shadowRoot);
                     console.log('=== END DEBUG ===');
                 }, 2000);
             }
