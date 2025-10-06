@@ -286,6 +286,21 @@
                     // First, create and initialize the UI module with all data ready
                     initializeAgentAssist();
 
+                    // Dispatch conversation-details-received event required by Custom agent desktop
+                    setTimeout(() => {
+                        dispatchAgentAssistEvent('conversation-details-received', {
+                            conversationName: conversation_name,
+                            payload: {
+                                conversationId: conversation_name.split('/')[5],
+                                participants: {
+                                    END_USER: { name: end_user_name },
+                                    HUMAN_AGENT: { name: human_agent_name }
+                                }
+                            }
+                        });
+                        console.log('✅ Dispatched conversation-details-received event');
+                    }, 1000);
+
                     console.log('✅ Conversation fully initialized with both participants');
                 }
             }
