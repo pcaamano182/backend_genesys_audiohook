@@ -265,8 +265,10 @@
 
                 // Create managed container element (correct element name)
                 const uiContainer = document.createElement('agent-assist-ui-modules');
-                // Only request features that are actually enabled in the conversation profile
-                uiContainer.setAttribute('features', 'KNOWLEDGE_ASSIST,DIALOGFLOW_ASSIST');
+                // Map conversation profile features to UI module feature names:
+                // KNOWLEDGE_ASSIST -> ARTICLE_SUGGESTION, FAQ, ARTICLE_SEARCH
+                // For now, try just ARTICLE_SUGGESTION to see if module initializes
+                uiContainer.setAttribute('features', 'ARTICLE_SUGGESTION');
                 uiContainer.setAttribute('conversation-profile', conversation_profile_name);
                 uiContainer.setAttribute('conversation-name', conversation_name);
                 uiContainer.setAttribute('agent-desktop', 'Custom');
