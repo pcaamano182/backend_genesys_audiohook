@@ -306,14 +306,36 @@
                     // First, create and initialize the UI module with all data ready
                     initializeAgentAssist();
 
-                    // CRITICAL: Dispatch active-conversation-selected FIRST
-                    // This is the first event that MUST be dispatched per documentation
+                    // Fetch and dispatch conversation profile BEFORE active-conversation-selected
                     setTimeout(() => {
-                        console.log('🎯 Dispatching active-conversation-selected (REQUIRED FIRST EVENT)');
-                        dispatchAgentAssistEvent('active-conversation-selected', {
-                            conversationName: conversation_name
+                        console.log('📋 Fetching conversation profile to send to UI module...');
+                        fetch(serviceUrl + versionUrl + conversation_profile_name, {
+                            method: 'GET',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': JWT,
+                            },
+                        })
+                        .then(response => response.json())
+                        .then(profileData => {
+                            console.log('✅ Conversation profile fetched:', profileData);
+
+                            // Dispatch conversation profile FIRST
+                            dispatchAgentAssistEvent('conversation-profile-received', profileData);
+                            console.log('✅ Dispatched conversation-profile-received');
+
+                            // Then dispatch active-conversation-selected
+                            setTimeout(() => {
+                                console.log('🎯 Dispatching active-conversation-selected');
+                                dispatchAgentAssistEvent('active-conversation-selected', {
+                                    conversationName: conversation_name
+                                });
+                                console.log('✅ Dispatched active-conversation-selected');
+                            }, 500);
+                        })
+                        .catch((error) => {
+                            console.error('❌ Error fetching conversation profile:', error);
                         });
-                        console.log('✅ Dispatched active-conversation-selected');
                     }, 1500);
 
                     console.log('✅ Conversation fully initialized with both participants');
