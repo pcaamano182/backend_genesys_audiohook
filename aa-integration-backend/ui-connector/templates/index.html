@@ -309,6 +309,15 @@
                     // First, create and initialize the UI module with all data ready
                     initializeAgentAssist();
 
+                    // Dispatch required connector initialization events for Custom agent desktop
+                    setTimeout(() => {
+                        console.log('🔌 Dispatching api-connector-initialized');
+                        dispatchAgentAssistEvent('api-connector-initialized', {});
+
+                        console.log('🔌 Dispatching event-based-connection-established');
+                        dispatchAgentAssistEvent('event-based-connection-established', {});
+                    }, 1000);
+
                     // Fetch and dispatch conversation profile BEFORE active-conversation-selected
                     setTimeout(() => {
                         console.log('📋 Fetching conversation profile to send to UI module...');
@@ -339,7 +348,7 @@
                         .catch((error) => {
                             console.error('❌ Error fetching conversation profile:', error);
                         });
-                    }, 1500);
+                    }, 2000);
 
                     console.log('✅ Conversation fully initialized with both participants');
                 }
