@@ -284,7 +284,10 @@ def wait_for_redis_resume(open_conversation_state: OpenConversationState,
             open_conversation_state.conversation_name)
     # Always send the resume after awaiting the redis, don't stop the audio streaming
     # event if redis client is not set
-    ws.send(json.dumps(audiohook.create_resume_message()))
+    try:
+        ws.send(json.dumps(audiohook.create_resume_message()))
+    except Exception as e:
+        logging.warning("Could not send resume message, WebSocket may be closed: %s", e)
 
 
 @sock.route('/connect')
