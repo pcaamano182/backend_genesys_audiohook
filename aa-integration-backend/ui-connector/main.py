@@ -134,6 +134,36 @@ def call_dialogflow(version, project, location, tail):
                 location, request.full_path, request.get_json())
         logging.info('post_dialogflow response: {0}, {1}, {2}'.format(
             response.raw.data, response.status_code, response.headers))
+
+        # If this is analyzeContent, publish suggestions to Redis for real-time updates
+        if ':analyzeContent' in request.path and response.status_code == 200:
+            try:
+                response_data = json.loads(response.raw.data)
+                # Extract conversation name from the request path
+                # Format: /v2beta1/projects/{project}/locations/{location}/conversations/{conv}/participants/{participant}:analyzeContent
+                path_parts = request.path.split('/')
+                if len(path_parts) >= 8:
+                    conversation_name = '/'.join(path_parts[2:8])  # projects/.../conversations/{id}
+                    conversation_name_without_location = get_conversation_name_without_location(conversation_name)
+
+                    # Check if response contains suggestions
+                    if 'humanAgentSuggestionResults' in response_data:
+                        # Get the SERVER_ID for this conversation from Redis
+                        server_id = redis_client.get(conversation_name_without_location)
+                        if server_id:
+                            server_id = str(server_id, encoding='utf-8')
+                            # Publish to the specific server's channel
+                            channel = f'{server_id}:{conversation_name_without_location}'
+                            message = {
+                                'data_type': 'human-agent-assistant-event',
+                                'conversation_name': conversation_name_without_location,
+                                'human_agent_suggestion_results': response_data['humanAgentSuggestionResults']
+                            }
+                            redis_client.publish(channel, json.dumps(message))
+                            logging.info('Published suggestion event to Redis channel: %s', channel)
+            except Exception as e:
+                logging.warning('Failed to publish suggestion event to Redis: %s', e)
+
         return response.raw.data, response.status_code, response.headers.items()
     else:
         response = dialogflow.patch_dialogflow(
