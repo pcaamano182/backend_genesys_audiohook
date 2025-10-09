@@ -25,8 +25,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js"
         integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ=="
         crossorigin="anonymous"></script>
-    <!-- Google Agent Assist UI Modules Connector -->
-    <script src="https://www.gstatic.com/agent-assist-ui-modules/v1/common.js"></script>
+    <!-- Google Agent Assist UI Modules Container V2 -->
+    <script src="https://www.gstatic.com/agent-assist-ui-modules/v2/container.js"></script>
     <style>
         #agent-assist-container {
             background: #f8f9fa;
@@ -289,6 +289,11 @@
 
                 window.uiModulesContainer = uiContainer;
                 console.log('✅ UI modules element created');
+
+                // CRITICAL: Join the SocketIO room for this conversation
+                currentSocket.emit('join-conversation', conversation_name, (ack, result) => {
+                    console.log('🔗 Joined SocketIO room:', ack, result);
+                });
 
                 // CRITICAL: Dispatch conversation-initialized event to trigger UI rendering
                 setTimeout(() => {
