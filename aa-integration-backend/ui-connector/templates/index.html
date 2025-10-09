@@ -290,6 +290,15 @@
                 window.uiModulesContainer = uiContainer;
                 console.log('✅ UI modules element created');
 
+                // CRITICAL: Dispatch conversation-initialized event to trigger UI rendering
+                setTimeout(() => {
+                    console.log('🔔 Dispatching conversation-initialized event');
+                    dispatchAgentAssistEvent('conversation-initialized', {
+                        conversationName: conversation_name,
+                        conversationProfileName: conversation_profile_name
+                    });
+                }, 500);
+
                 // Debug after initialization
                 setTimeout(() => {
                     console.log('=== CONNECTOR STATUS ===');
