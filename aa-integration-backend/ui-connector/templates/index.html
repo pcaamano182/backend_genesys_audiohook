@@ -25,8 +25,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js"
         integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ=="
         crossorigin="anonymous"></script>
-    <!-- Google Agent Assist UI Modules Container V2 -->
-    <script src="https://www.gstatic.com/agent-assist-ui-modules/v2/container.js"></script>
+    <!-- Google Agent Assist UI Modules - Load all required scripts -->
+    <script src="https://www.gstatic.com/agent-assist-ui-modules/v1.9/common.js"></script>
+    <script src="https://www.gstatic.com/agent-assist-ui-modules/v2.0/container.js"></script>
     <style>
         #agent-assist-container {
             background: #f8f9fa;
@@ -58,6 +59,9 @@
         }
     </style>
     <script type="text/javascript" charset="utf-8">
+        // Enable debug mode for Agent Assist UI modules
+        window._uiModuleFlags = { debug: true };
+
         $(document).ready(function () {
             // TODO: Update the URL of your UI Connector Cloud Run Service. Keep it empty for local test/deployment.
             let serviceUrl = '';
@@ -69,6 +73,9 @@
 
             // An array of joined conversation names
             var joined_conversations = [];
+
+            // Store conversation data for event handlers
+            var conversationData = {};
 
             // Helper function for printing log
             function logPrinter(action, type, msg) {
@@ -162,12 +169,16 @@
                     });
             }
 
-            // Helper function to dispatch Agent Assist events
-            function dispatchAgentAssistEvent(eventName, detail) {
-                const event = new CustomEvent(eventName, { detail: detail });
-                window.dispatchEvent(event);
-                console.log('Dispatched event:', eventName, detail);
-            }
+            // Listen for conversation-initialization-requested from UI modules
+            addAgentAssistEventListener('conversation-initialization-requested', e => {
+                console.log('🔔 Module requested conversation initialization, responding...');
+                dispatchAgentAssistEvent('conversation-initialized', {
+                    detail: {
+                        conversation: { name: conversationData.conversationName },
+                        participants: conversationData.participants
+                    }
+                });
+            });
 
             // Add event listeners to debug what the UI module is requesting
             function setupDebugListeners() {
@@ -290,19 +301,21 @@
                 window.uiModulesContainer = uiContainer;
                 console.log('✅ UI modules element created');
 
-                // CRITICAL: Join the SocketIO room for this conversation
-                currentSocket.emit('join-conversation', conversation_name, (ack, result) => {
-                    console.log('🔗 Joined SocketIO room:', ack, result);
-                });
+                // Wait for connector to signal it's ready, then initialize
+                addAgentAssistEventListener('api-connector-initialized', () => {
+                    console.log('✅ API connector initialized, now dispatching active-conversation-selected');
 
-                // CRITICAL: Dispatch conversation-initialized event to trigger UI rendering
-                setTimeout(() => {
-                    console.log('🔔 Dispatching conversation-initialized event');
-                    dispatchAgentAssistEvent('conversation-initialized', {
-                        conversationName: conversation_name,
-                        conversationProfileName: conversation_profile_name
+                    // Join the SocketIO room for this conversation
+                    const convNameWithoutLocation = conversation_name.replace(/\/locations\/[^\/]+/, '');
+                    currentSocket.emit('join-conversation', convNameWithoutLocation, (ack, result) => {
+                        console.log('🔗 Joined SocketIO room:', ack, result);
                     });
-                }, 500);
+
+                    // Dispatch active conversation selected
+                    dispatchAgentAssistEvent('active-conversation-selected', {
+                        detail: { conversationName: conversation_name }
+                    });
+                });
 
                 // Debug after initialization
                 setTimeout(() => {
@@ -478,6 +491,17 @@
                         $('#log').prepend(
                             $('<div/>').text('Received <human_agent_name> ' + JSON.stringify(data)).html() + '<br><br>'
                         );
+
+                        // Store conversation data for event handlers
+                        conversationData = {
+                            conversationName: conversation_name,
+                            participants: {
+                                END_USER: { name: end_user_name },
+                                HUMAN_AGENT: { name: human_agent_name }
+                            }
+                        };
+                        console.log('💾 Stored conversation data:', conversationData);
+
                         // Notify UI modules that conversation is fully initialized
                         setTimeout(notifyConversationInitialized, 500);
                     })
