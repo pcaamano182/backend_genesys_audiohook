@@ -312,12 +312,29 @@
                     window.uiModulesContainer = uiContainer;
                     console.log('✅ UI modules element created');
 
-                    // Wait for connector to signal it's ready, then activate conversation
+                    // Wait for BOTH connectors to initialize before activating conversation
+                    let apiConnectorReady = false;
+                    let eventConnectorReady = false;
+
+                    function tryActivateConversation() {
+                        if (apiConnectorReady && eventConnectorReady) {
+                            console.log('✅ Both connectors ready, dispatching active-conversation-selected');
+                            dispatchAgentAssistEvent('active-conversation-selected', {
+                                detail: { conversationName: conversation_name }
+                            });
+                        }
+                    }
+
                     addAgentAssistEventListener('api-connector-initialized', () => {
-                        console.log('✅ API connector initialized, now dispatching active-conversation-selected');
-                        dispatchAgentAssistEvent('active-conversation-selected', {
-                            detail: { conversationName: conversation_name }
-                        });
+                        console.log('✅ API connector initialized');
+                        apiConnectorReady = true;
+                        tryActivateConversation();
+                    });
+
+                    addAgentAssistEventListener('event-based-connector-initialized', () => {
+                        console.log('✅ Event-based connector initialized');
+                        eventConnectorReady = true;
+                        tryActivateConversation();
                     });
 
                     // Debug after initialization
