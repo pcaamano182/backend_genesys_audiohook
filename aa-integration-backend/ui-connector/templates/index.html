@@ -259,72 +259,76 @@
                     return;
                 }
 
+                // CRITICAL: Wait for SocketIO to be ready before initializing connector
+                if (!currentSocket || !currentSocket.connected) {
+                    console.log('⏳ Waiting for SocketIO connection...');
+                    setTimeout(initializeAgentAssist, 500);
+                    return;
+                }
+
                 console.log('🚀 Initializing UiModulesConnector for Custom agent desktop');
 
-                // Create connector instance
-                connector = new UiModulesConnector();
+                // Join the SocketIO room FIRST before initializing connector
+                const convNameWithoutLocation = conversation_name.replace(/\/locations\/[^\/]+/, '');
+                currentSocket.emit('join-conversation', convNameWithoutLocation, (ack, result) => {
+                    console.log('🔗 Joined SocketIO room:', ack, result);
 
-                // Initialize with configuration
-                const config = {
-                    channel: 'chat',
-                    agentDesktop: 'Custom',
-                    conversationProfileName: conversation_profile_name,
-                    apiConfig: {
-                        authToken: JWT,
-                        customApiEndpoint: window.location.origin,
-                    },
-                    eventBasedConfig: {
-                        notifierServerEndpoint: window.location.origin,
-                        library: 'SocketIo'
-                    }
-                };
+                    // Now that SocketIO room is joined, initialize the connector
+                    connector = new UiModulesConnector();
 
-                console.log('📋 Connector config:', config);
-                connector.init(config);
-                console.log('✅ UiModulesConnector initialized');
+                    const config = {
+                        channel: 'chat',
+                        agentDesktop: 'Custom',
+                        conversationProfileName: conversation_profile_name,
+                        apiConfig: {
+                            authToken: JWT,
+                            customApiEndpoint: window.location.origin,
+                        },
+                        eventBasedConfig: {
+                            notifierServerEndpoint: window.location.origin,
+                            library: 'SocketIo'
+                        }
+                    };
 
-                // Create UI modules element (v2)
-                const container = document.getElementById('agent-assist-container');
-                const uiContainer = document.createElement('agent-assist-ui-modules-v2');
-                uiContainer.setAttribute('features', 'ARTICLE_SUGGESTION');
-                uiContainer.setAttribute('conversation-profile', conversation_profile_name);
-                uiContainer.setAttribute('conversation-name', conversation_name);
-                uiContainer.setAttribute('agent-desktop', 'Custom');
-                uiContainer.setAttribute('auth-token', JWT);
-                uiContainer.setAttribute('channel', 'chat');
-                uiContainer.setAttribute('custom-api-endpoint', window.location.origin);
-                uiContainer.setAttribute('show-header', 'true');
+                    console.log('📋 Connector config:', config);
+                    connector.init(config);
+                    console.log('✅ UiModulesConnector initialized');
 
-                container.innerHTML = '';
-                container.appendChild(uiContainer);
+                    // Create UI modules element (v2)
+                    const container = document.getElementById('agent-assist-container');
+                    const uiContainer = document.createElement('agent-assist-ui-modules-v2');
+                    uiContainer.setAttribute('features', 'ARTICLE_SUGGESTION');
+                    uiContainer.setAttribute('conversation-profile', conversation_profile_name);
+                    uiContainer.setAttribute('conversation-name', conversation_name);
+                    uiContainer.setAttribute('agent-desktop', 'Custom');
+                    uiContainer.setAttribute('auth-token', JWT);
+                    uiContainer.setAttribute('channel', 'chat');
+                    uiContainer.setAttribute('custom-api-endpoint', window.location.origin);
+                    uiContainer.setAttribute('show-header', 'true');
 
-                window.uiModulesContainer = uiContainer;
-                console.log('✅ UI modules element created');
+                    container.innerHTML = '';
+                    container.appendChild(uiContainer);
 
-                // Wait for connector to signal it's ready, then initialize
-                addAgentAssistEventListener('api-connector-initialized', () => {
-                    console.log('✅ API connector initialized, now dispatching active-conversation-selected');
+                    window.uiModulesContainer = uiContainer;
+                    console.log('✅ UI modules element created');
 
-                    // Join the SocketIO room for this conversation
-                    const convNameWithoutLocation = conversation_name.replace(/\/locations\/[^\/]+/, '');
-                    currentSocket.emit('join-conversation', convNameWithoutLocation, (ack, result) => {
-                        console.log('🔗 Joined SocketIO room:', ack, result);
+                    // Wait for connector to signal it's ready, then activate conversation
+                    addAgentAssistEventListener('api-connector-initialized', () => {
+                        console.log('✅ API connector initialized, now dispatching active-conversation-selected');
+                        dispatchAgentAssistEvent('active-conversation-selected', {
+                            detail: { conversationName: conversation_name }
+                        });
                     });
 
-                    // Dispatch active conversation selected
-                    dispatchAgentAssistEvent('active-conversation-selected', {
-                        detail: { conversationName: conversation_name }
-                    });
+                    // Debug after initialization
+                    setTimeout(() => {
+                        console.log('=== CONNECTOR STATUS ===');
+                        console.log('Connector instance:', connector);
+                        console.log('UI Container innerHTML:', uiContainer.innerHTML);
+                        console.log('UI Container connected:', uiContainer.isConnected);
+                        console.log('=== END DEBUG ===');
+                    }, 3000);
                 });
-
-                // Debug after initialization
-                setTimeout(() => {
-                    console.log('=== CONNECTOR STATUS ===');
-                    console.log('Connector instance:', connector);
-                    console.log('UI Container innerHTML:', uiContainer.innerHTML);
-                    console.log('UI Container connected:', uiContainer.isConnected);
-                    console.log('=== END DEBUG ===');
-                }, 3000);
             }
 
             // Notify UI modules that conversation has been initialized
@@ -512,6 +516,7 @@
             });
             $('form#user_send').submit(function (event) {
                 const userMessage = $('#user_send_message').val();
+                // Just make the API call - connector handles the response automatically via SocketIO
                 fetch(serviceUrl + versionUrl + end_user_name + ':analyzeContent', {
                     method: 'POST',
                     headers: {
@@ -526,14 +531,7 @@
                         $('#log').prepend(
                             $('<div/>').text('Received <analyzeContent response for user> ' + JSON.stringify(data)).html() + '<br><br>'
                         );
-                        // Dispatch event for UI modules
-                        dispatchAgentAssistEvent('analyze-content-response-received', {
-                            conversationName: conversation_name,
-                            payload: {
-                                type: 'text',
-                                response: data
-                            }
-                        });
+                        // Don't manually dispatch - connector receives via SocketIO
                     })
                     .catch((error) => {
                         console.error('Error:', error);
@@ -542,6 +540,7 @@
             });
             $('form#agent_send').submit(function (event) {
                 const agentMessage = $('#agent_send_message').val();
+                // Just make the API call - connector handles the response automatically via SocketIO
                 fetch(serviceUrl + versionUrl + human_agent_name + ':analyzeContent', {
                     method: 'POST',
                     headers: {
@@ -556,14 +555,7 @@
                         $('#log').prepend(
                             $('<div/>').text('Received <analyzeContent response for agent> ' + JSON.stringify(data)).html() + '<br><br>'
                         );
-                        // Dispatch event for UI modules
-                        dispatchAgentAssistEvent('analyze-content-response-received', {
-                            conversationName: conversation_name,
-                            payload: {
-                                type: 'text',
-                                response: data
-                            }
-                        });
+                        // Don't manually dispatch - connector receives via SocketIO
                     })
                     .catch((error) => {
                         console.error('Error:', error);
