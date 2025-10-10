@@ -10,6 +10,8 @@
   <link rel="stylesheet" href="../public/css/styles.css" type="text/css">
   <!-- WebComponents polyfill. Needed for rendering web components in older browsers. -->
   <script src="https://www.gstatic.com/external_hosted/document_register_element/document-register-element.js"></script>
+  <!-- Genesys Cloud Platform Client SDK -->
+  <script src="https://sdk-cdn.mypurecloud.com/javascript/latest/purecloud-platform-client-v2.min.js"></script>
   <!-- Core UI module container. Loads all UI module-specific scripts. -->
   <script src="https://www.gstatic.com/agent-assist-ui-modules/v1.8/common.js"></script>
   <script src="https://www.gstatic.com/agent-assist-ui-modules/v1.3/transcript.js"></script>
@@ -77,16 +79,13 @@
 
         const config = {
           channel: channel,
-          agentDesktop: 'GenesysCloud',
+          agentDesktop: 'Custom',
           conversationProfileName: conversationProfile,
           apiConfig: {
             authToken: accessToken,
             customApiEndpoint: proxyServer,
           },
           useCustomConversationId: true,
-          oauthClientId: clientId,
-          redirectUri: redirectUri,
-          genesysCloudRegion: genesysCloudRegion,
           eventBasedConfig: {
             notifierServerEndpoint: proxyServer,
             library: 'SocketIo'
@@ -111,35 +110,40 @@
         };
       }
 
-      /** When the first time UI module load, parse an empty token */
-      if (!existingUiModulesEl && !accessToken) {
-        createUIElement(accessToken);
-        if (channel === 'voice') {
-          createTranscriptUIElement();
+      /** Manual Genesys OAuth login */
+      async function loginWithGenesys() {
+        const client = window.platformClient.ApiClient.instance;
+        client.setEnvironment(genesysCloudRegion);
+
+        try {
+          await client.loginImplicitGrant(clientId, redirectUri, { state: 'custom-state' });
+          const genesysAccessToken = client.authentications['PureCloud OAuth'].accessToken;
+
+          const res = await fetch(proxyServer + '/register', {
+            method: 'POST',
+            headers: [['Authorization', genesysAccessToken]],
+          });
+
+          if (res.status === 200) {
+            const body = await res.json();
+            accessToken = body.token;
+            createUIElement(accessToken);
+            if (channel === 'voice') {
+              createTranscriptUIElement();
+            }
+          }
+        } catch (error) {
+          console.error('Login failed:', error);
         }
       }
 
-      /** After the genesys OAuth, get the access token */
-      addAgentAssistEventListener(
-        'genesys-cloud-connector-access-token-received', function (event) {
-          const genesysCloudAccessToken = event.detail.accessToken;
-          authenticateGenesysCloud(genesysCloudAccessToken).then(function (res) {
-            if (res.status !== 200) {
-              document.body.removeChild(existingUiModulesEl);
-            }
-            return res.json();
-          }).then(function (body) {
-            existingUiModulesEl = document.querySelector(UI_MODULES_EL_SELECTOR);
-            // If there is unauthenticated existingUIModule,
-            // the accessToken will be undefined
-            // Set the accessToken to the existingUIModule
-            firstTimeLoad = existingUiModulesEl && !accessToken;
-            if (firstTimeLoad) {
-              accessToken = body.token;
-              createUIElement(accessToken);
-            }
-          });
-        });
+      /** Check if we have token in URL hash (OAuth redirect) */
+      if (window.location.hash.includes('access_token')) {
+        loginWithGenesys();
+      } else if (!existingUiModulesEl && !accessToken) {
+        // Show login prompt or auto-login
+        loginWithGenesys();
+      }
 
       addAgentAssistEventListener('smart-reply-selected', function (event) {
         navigator.clipboard.writeText(event.detail.answer.reply);
@@ -148,19 +152,7 @@
       addAgentAssistEventListener('agent-coaching-response-selected', function (event) {
         navigator.clipboard.writeText(event.detail.selectedResponse);
       });
-
-      /**
-      * Authenticate the Genesys Cloud access token
-      * @param {string} accessToken
-      * @return {!Promise<number>}
-      */
-      function authenticateGenesysCloud(accessToken) {
-        return fetch(proxyServer + '/register', {
-                method: 'POST',
-                headers: [['Authorization', accessToken]],
-              });
-        }
-      });
+    });
   </script>
 </body>
 
