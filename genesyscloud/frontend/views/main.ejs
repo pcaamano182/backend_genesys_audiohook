@@ -44,7 +44,7 @@
       const gcTargetEnv = urlParams.get('gcTargetEnv') || genesysCloudRegion;
       applicationServer = applicationServer.replace(/\/$/, "");
       var firstTimeLoad = false;
-      const redirectUri = `${applicationServer}?conversationProfile=${conversationProfile}&features=${features}`;
+      const redirectUri = `${applicationServer}?conversationProfile=${conversationProfile}&features=${features}&gcTargetEnv=${encodeURIComponent(gcTargetEnv)}`;
       var existingUiModulesEl = document.querySelector(UI_MODULES_EL_SELECTOR);
       const appContainer = document.querySelector('.app-container');
       const uiModulesContainer = document.querySelector('.ui-modules-container');
