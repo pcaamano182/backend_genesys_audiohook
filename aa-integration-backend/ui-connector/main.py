@@ -95,9 +95,17 @@ def check_status():
     return 'Hello, cross-origin-world!'
 
 
-@app.route('/register', methods=['POST'])
+@app.route('/register', methods=['POST', 'OPTIONS'])
 def register_token():
     """Registers a JWT token after checking authorization header."""
+    if request.method == 'OPTIONS':
+        # Handle preflight request
+        response = make_response('', 204)
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+        return response
+
     auth = request.headers.get('Authorization', '')
     if not check_auth(auth):
         return make_response('Could not authenticate user', 401, {'Authentication': 'valid token required'})
