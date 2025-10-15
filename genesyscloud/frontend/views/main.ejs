@@ -41,10 +41,10 @@
       const urlParams = new URLSearchParams(window.location.search);
       const currentConversationId = urlParams.get('conversationid');
       const gcHostOrigin = urlParams.get('gcHostOrigin');
-      const gcTargetEnv = urlParams.get('gcTargetEnv') || genesysCloudRegion;
+      const gcTargetEnv = urlParams.get('gcTargetEnv');
       applicationServer = applicationServer.replace(/\/$/, "");
       var firstTimeLoad = false;
-      const redirectUri = `${applicationServer}?conversationProfile=${conversationProfile}&features=${features}&gcTargetEnv=${gcTargetEnv}`;
+      const redirectUri = `${applicationServer}?conversationProfile=${conversationProfile}&features=${features}`;
       var existingUiModulesEl = document.querySelector(UI_MODULES_EL_SELECTOR);
       const appContainer = document.querySelector('.app-container');
       const uiModulesContainer = document.querySelector('.ui-modules-container');
@@ -58,7 +58,7 @@
       }
 
       function createUIElement(accessToken) {
-        if (existingUiModulesEl && connector) {
+        if (existingUiModulesEl) {
           connector.setAuthToken(accessToken);
           connector.initGenesysCloudConnectorSubscription();
         } else {
@@ -68,11 +68,6 @@
           uiModulesContainer.appendChild(uiModulesEl);
 
           initConnect();
-
-          // After connector is initialized with token, start subscriptions
-          if (accessToken && connector) {
-            connector.initGenesysCloudConnectorSubscription();
-          }
         }
       }
 
@@ -92,13 +87,9 @@
           oauthClientId: clientId,
           redirectUri: redirectUri,
           genesysCloudRegion: genesysCloudRegion,
-          genesysCloudEnvironment: gcTargetEnv,
           eventBasedConfig: {
             notifierServerEndpoint: proxyServer,
-            library: 'SocketIo',
-            auth: {
-              token: accessToken
-            }
+            library: 'SocketIo'
           }
         }
 
@@ -120,16 +111,12 @@
         };
       }
 
-      function addAgentAssistEventListener(eventName, handler) {
-        document.addEventListener(eventName, handler);
-      }
-
-      /** When the first time UI module load, create transcript but wait for token before creating UI element */
+      /** When the first time UI module load, parse an empty token */
       if (!existingUiModulesEl && !accessToken) {
+        createUIElement(accessToken);
         if (channel === 'voice') {
           createTranscriptUIElement();
         }
-        // Don't create UI element yet - wait for OAuth token first
       }
 
       /** After the genesys OAuth, get the access token */
@@ -143,10 +130,11 @@
             return res.json();
           }).then(function (body) {
             existingUiModulesEl = document.querySelector(UI_MODULES_EL_SELECTOR);
-            // If UI module hasn't been created yet (first load),
-            // create it now with the token
-            firstTimeLoad = !existingUiModulesEl && !accessToken;
-            if (firstTimeLoad || (!existingUiModulesEl && body.token)) {
+            // If there is unauthenticated existingUIModule,
+            // the accessToken will be undefined
+            // Set the accessToken to the existingUIModule
+            firstTimeLoad = existingUiModulesEl && !accessToken;
+            if (firstTimeLoad) {
               accessToken = body.token;
               createUIElement(accessToken);
             }
@@ -171,8 +159,8 @@
                 method: 'POST',
                 headers: [['Authorization', accessToken]],
               });
-      }
-    });
+        }
+      });
   </script>
 </body>
 
