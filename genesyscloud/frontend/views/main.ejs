@@ -120,6 +120,10 @@
         };
       }
 
+      function addAgentAssistEventListener(eventName, handler) {
+        document.addEventListener(eventName, handler);
+      }
+
       /** When the first time UI module load, create transcript but wait for token before creating UI element */
       if (!existingUiModulesEl && !accessToken) {
         if (channel === 'voice') {
