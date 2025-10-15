@@ -120,12 +120,12 @@
         };
       }
 
-      /** When the first time UI module load, parse an empty token */
+      /** When the first time UI module load, create transcript but wait for token before creating UI element */
       if (!existingUiModulesEl && !accessToken) {
-        createUIElement(accessToken);
         if (channel === 'voice') {
           createTranscriptUIElement();
         }
+        // Don't create UI element yet - wait for OAuth token first
       }
 
       /** After the genesys OAuth, get the access token */
@@ -139,11 +139,10 @@
             return res.json();
           }).then(function (body) {
             existingUiModulesEl = document.querySelector(UI_MODULES_EL_SELECTOR);
-            // If there is unauthenticated existingUIModule,
-            // the accessToken will be undefined
-            // Set the accessToken to the existingUIModule
-            firstTimeLoad = existingUiModulesEl && !accessToken;
-            if (firstTimeLoad) {
+            // If UI module hasn't been created yet (first load),
+            // create it now with the token
+            firstTimeLoad = !existingUiModulesEl && !accessToken;
+            if (firstTimeLoad || (!existingUiModulesEl && body.token)) {
               accessToken = body.token;
               createUIElement(accessToken);
             }
