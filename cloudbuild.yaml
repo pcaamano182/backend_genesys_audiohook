@@ -173,8 +173,20 @@ steps:
   - '80'
   - '--timeout'
   - '3600'
-  - '--update-env-vars'
-  - 'FEATURES=${_FEATURES},CONVERSATION_PROFILE=${_CONVERSATION_PROFILE},PROXY_SERVER=${_UI_CONNECTOR_URL},APPLICATION_SERVER_URL=${_FRONTEND_URL},CHANNEL=${_CHANNEL},GENESYS_CLOUD_REGION=${_GENESYS_CLOUD_ENVIRONMENT},OAUTH_CLIENT_ID=${_OAUTH_CLIENT_ID}'
+  - '--set-env-vars'
+  - 'FEATURES=ARTICLE_SUGGESTION,SMART_REPLY,FAQ,CONVERSATION_SUMMARIZATION'
+  - '--set-env-vars'
+  - 'CONVERSATION_PROFILE=${_CONVERSATION_PROFILE}'
+  - '--set-env-vars'
+  - 'PROXY_SERVER=${_UI_CONNECTOR_URL}'
+  - '--set-env-vars'
+  - 'APPLICATION_SERVER_URL=${_FRONTEND_URL}'
+  - '--set-env-vars'
+  - 'CHANNEL=${_CHANNEL}'
+  - '--set-env-vars'
+  - 'GENESYS_CLOUD_REGION=${_GENESYS_CLOUD_ENVIRONMENT}'
+  - '--set-env-vars'
+  - 'OAUTH_CLIENT_ID=${_OAUTH_CLIENT_ID}'
   waitFor: ['Push Genesys Frontend']
 
 # Build and deploy AA Integration Backend Cloud Pub/Sub Interceptor
