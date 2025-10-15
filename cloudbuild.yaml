@@ -123,9 +123,53 @@ steps:
   - '80'
   - '--timeout'
   - '3600'
-  - '--set-env-vars'
-  - 'AUTH_OPTION=Skip,JWT_SECRET_KEY=demo-secret-key'
   waitFor: ['Push AA UI Connector']
+
+# Build and deploy Genesys Cloud Frontend
+- name: 'gcr.io/cloud-builders/docker'
+  id: 'Build Genesys Frontend'
+  args:
+  - 'build'
+  - '-t'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genesys-frontend:$SHORT_SHA'
+  - './genesyscloud/frontend'
+  waitFor: ['Create Artifact Registry']
+
+- name: 'gcr.io/cloud-builders/docker'
+  id: 'Push Genesys Frontend'
+  args:
+  - 'push'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genesys-frontend:$SHORT_SHA'
+  waitFor: ['Build Genesys Frontend']
+
+- name: 'gcr.io/cloud-builders/gcloud'
+  id: 'Deploy Genesys Frontend'
+  args:
+  - 'run'
+  - 'deploy'
+  - 'genesys-agent-assist-frontend'
+  - '--image'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genesys-frontend:$SHORT_SHA'
+  - '--region'
+  - '${_REGION}'
+  - '--platform'
+  - 'managed'
+  - '--allow-unauthenticated'
+  - '--port'
+  - '8080'
+  - '--memory'
+  - '${_MEMORY}'
+  - '--cpu'
+  - '${_CPU}'
+  - '--min-instances'
+  - '0'
+  - '--max-instances'
+  - '10'
+  - '--concurrency'
+  - '80'
+  - '--timeout'
+  - '3600'
+  waitFor: ['Push Genesys Frontend']
 
 # Build and deploy AA Integration Backend Cloud Pub/Sub Interceptor
 - name: 'gcr.io/cloud-builders/docker'
@@ -182,9 +226,10 @@ steps:
   - |
     echo "Deployment completed! Service URLs:"
     echo "Genesys AudioHook: $(gcloud run services describe genesys-audiohook --region=${_REGION} --format='value(status.url)')"
+    echo "Genesys Frontend: $(gcloud run services describe genesys-agent-assist-frontend --region=${_REGION} --format='value(status.url)')"
     echo "AA UI Connector: $(gcloud run services describe aa-ui-connector --region=${_REGION} --format='value(status.url)')"
     echo "AA PubSub Interceptor: $(gcloud run services describe aa-pubsub-interceptor --region=${_REGION} --format='value(status.url)')"
-  waitFor: ['Deploy GenesysCloud AudioHook', 'Deploy AA UI Connector', 'Deploy AA PubSub Interceptor']
+  waitFor: ['Deploy GenesysCloud AudioHook', 'Deploy Genesys Frontend', 'Deploy AA UI Connector', 'Deploy AA PubSub Interceptor']
 
 # Cloud Build timeout (optional, defaults to 10 minutes)
 timeout: 1200s
