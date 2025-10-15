@@ -146,7 +146,11 @@ def call_dialogflow(version, project, location, tail):
         # If this is analyzeContent, publish suggestions to Redis for real-time updates
         if ':analyzeContent' in request.path and response.status_code == 200:
             try:
-                response_data = json.loads(response.raw.data)
+                # Decompress gzip response if needed
+                raw_data = response.raw.data
+                if response.headers.get('Content-Encoding') == 'gzip':
+                    raw_data = gzip.decompress(raw_data)
+                response_data = json.loads(raw_data)
                 # Extract conversation name from the request path
                 # Format: /v2beta1/projects/{project}/locations/{location}/conversations/{conv}/participants/{participant}:analyzeContent
                 path_parts = request.path.split('/')
