@@ -77,6 +77,8 @@ steps:
   - '80'
   - '--timeout'
   - '3600'
+  - '--update-env-vars'
+  - 'GCP_PROJECT_ID=${_GCP_PROJECT_ID},SERVICE_REGION=${_REGION},CONVERSATION_PROFILE_NAME=${_CONVERSATION_PROFILE},API_KEY=${_API_KEY},UI_CONNECTOR=${_UI_CONNECTOR_URL},REDISHOST=${_REDISHOST},REDISPORT=${_REDISPORT},GENESYS_CLIENT_ID=${_GENESYS_CLIENT_ID},GENESYS_CLIENT_SECRET=${_GENESYS_CLIENT_SECRET},GENESYS_REGION=${_GENESYS_REGION}'
   waitFor: ['Push GenesysCloud AudioHook']
 
 # Build and deploy AA Integration Backend UI Connector
@@ -123,6 +125,8 @@ steps:
   - '80'
   - '--timeout'
   - '3600'
+  - '--update-env-vars'
+  - 'AUTH_OPTION=${_AUTH_OPTION},GCP_PROJECT_ID=${_GCP_PROJECT_ID},REDISHOST=${_REDISHOST},REDISPORT=${_REDISPORT},GENESYS_CLOUD_ENVIRONMENT=${_GENESYS_CLOUD_ENVIRONMENT}'
   waitFor: ['Push AA UI Connector']
 
 # Build and deploy Genesys Cloud Frontend
@@ -169,6 +173,8 @@ steps:
   - '80'
   - '--timeout'
   - '3600'
+  - '--update-env-vars'
+  - 'FEATURES=${_FEATURES},CONVERSATION_PROFILE=${_CONVERSATION_PROFILE},PROXY_SERVER=${_UI_CONNECTOR_URL},APPLICATION_SERVER_URL=${_FRONTEND_URL},CHANNEL=${_CHANNEL},GENESYS_CLOUD_REGION=${_GENESYS_CLOUD_ENVIRONMENT},OAUTH_CLIENT_ID=${_OAUTH_CLIENT_ID}'
   waitFor: ['Push Genesys Frontend']
 
 # Build and deploy AA Integration Backend Cloud Pub/Sub Interceptor
@@ -215,6 +221,8 @@ steps:
   - '80'
   - '--timeout'
   - '3600'
+  - '--update-env-vars'
+  - 'REDISHOST=${_REDISHOST},REDISPORT=${_REDISPORT}'
   waitFor: ['Push AA PubSub Interceptor']
 
 # Show deployment URLs
@@ -246,3 +254,18 @@ substitutions:
   _MEMORY: '1Gi'
   _CPU: '1'
   _ARTIFACT_REPO: 'agent-assist-repo'
+  _GCP_PROJECT_ID: 'gcoe-alliance-medpalm2-1'
+  _CONVERSATION_PROFILE: 'projects/gcoe-alliance-medpalm2-1/locations/global/conversationProfiles/Wf5rZ0mqTCGCpTbJEsuaYg'
+  _API_KEY: 'klfBzHVunaDKFerr6EHsK8wpIy'
+  _UI_CONNECTOR_URL: 'https://aa-ui-connector-368415647893.us-central1.run.app'
+  _FRONTEND_URL: 'https://genesys-agent-assist-frontend-368415647893.us-central1.run.app'
+  _REDISHOST: '10.215.83.83'
+  _REDISPORT: '6379'
+  _GENESYS_CLIENT_ID: 'f92ccea6-bf06-4188-9acc-dfcbd861f236'
+  _GENESYS_CLIENT_SECRET: '_tv_yCzp-kBU6DB42HXrtvYj4KtVjYjMpuD6U9HsG6I'
+  _GENESYS_REGION: 'us_east_1'
+  _AUTH_OPTION: 'GenesysCloud'
+  _GENESYS_CLOUD_ENVIRONMENT: 'mypurecloud.com'
+  _FEATURES: 'ARTICLE_SUGGESTION,SMART_REPLY,FAQ,CONVERSATION_SUMMARIZATION'
+  _CHANNEL: 'voice'
+  _OAUTH_CLIENT_ID: 'a92dcdab-7d11-463a-bce3-7683206dc1a3'
