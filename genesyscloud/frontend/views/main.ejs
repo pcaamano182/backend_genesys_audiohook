@@ -41,10 +41,10 @@
       const urlParams = new URLSearchParams(window.location.search);
       const currentConversationId = urlParams.get('conversationid');
       const gcHostOrigin = urlParams.get('gcHostOrigin');
-      const gcTargetEnv = urlParams.get('gcTargetEnv');
+      const gcTargetEnv = urlParams.get('gcTargetEnv') || genesysCloudRegion;
       applicationServer = applicationServer.replace(/\/$/, "");
       var firstTimeLoad = false;
-      const redirectUri = `${applicationServer}?conversationProfile=${conversationProfile}&features=${features}`;
+      const redirectUri = `${applicationServer}?conversationProfile=${conversationProfile}&features=${features}&gcTargetEnv=${gcTargetEnv}`;
       var existingUiModulesEl = document.querySelector(UI_MODULES_EL_SELECTOR);
       const appContainer = document.querySelector('.app-container');
       const uiModulesContainer = document.querySelector('.ui-modules-container');
