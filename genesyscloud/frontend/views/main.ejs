@@ -95,7 +95,10 @@
           genesysCloudEnvironment: gcTargetEnv,
           eventBasedConfig: {
             notifierServerEndpoint: proxyServer,
-            library: 'SocketIo'
+            library: 'SocketIo',
+            auth: {
+              token: accessToken
+            }
           }
         }
 
