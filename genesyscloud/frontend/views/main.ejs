@@ -14,6 +14,8 @@
   <script src="https://www.gstatic.com/agent-assist-ui-modules/v1.8/common.js"></script>
   <script src="https://www.gstatic.com/agent-assist-ui-modules/v1.3/transcript.js"></script>
   <script src="https://www.gstatic.com/agent-assist-ui-modules/v2.0/container.js"></script>
+  <!-- SocketIO client for direct connection -->
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 
 </head>
 <body>
@@ -103,14 +105,18 @@
         connector.init(config);
 
         // Send join-conversation event if we have a conversationid
-        if (currentConversationId) {
+        // Connect directly with SocketIO to send join-conversation
+        if (currentConversationId && accessToken) {
           const conversationName = 'projects/' + conversationProfile.split('/')[1] + '/conversations/a' + currentConversationId;
-          // Wait for connector to be ready, then emit join-conversation
-          setTimeout(function() {
-            if (connector.eventBasedClient && connector.eventBasedClient.emit) {
-              connector.eventBasedClient.emit('join-conversation', conversationName);
+          const socket = io(proxyServer, {
+            auth: {
+              token: accessToken
             }
-          }, 1000);
+          });
+          socket.on('connect', function() {
+            socket.emit('join-conversation', conversationName);
+            console.log('Sent join-conversation for:', conversationName);
+          });
         }
       }
 
