@@ -41,7 +41,17 @@
       var applicationServer = '<%= applicationServer %>';
       var accessToken = '';
       const urlParams = new URLSearchParams(window.location.search);
-      const currentConversationId = urlParams.get('conversationid');
+      var currentConversationId = urlParams.get('conversationid');
+
+      // Save conversationid to sessionStorage if present, or retrieve it if missing
+      if (currentConversationId) {
+        sessionStorage.setItem('genesys_conversation_id', currentConversationId);
+        console.log('Saved conversationid to sessionStorage:', currentConversationId);
+      } else if (sessionStorage.getItem('genesys_conversation_id')) {
+        currentConversationId = sessionStorage.getItem('genesys_conversation_id');
+        console.log('Retrieved conversationid from sessionStorage:', currentConversationId);
+      }
+
       const gcHostOrigin = urlParams.get('gcHostOrigin');
       const gcTargetEnv = urlParams.get('gcTargetEnv') || genesysCloudRegion;
       applicationServer = applicationServer.replace(/\/$/, "");
