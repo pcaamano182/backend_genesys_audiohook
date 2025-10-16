@@ -126,9 +126,14 @@
         };
       }
 
-      /** When the first time UI module load, parse an empty token */
+      /** When the first time UI module load, create UI element but DON'T init connector yet */
       if (!existingUiModulesEl && !accessToken) {
-        createUIElement(accessToken);
+        // Create UI element placeholder, but connector will be initialized after OAuth
+        const uiModulesContainer = document.getElementById('ui-modules-container');
+        if (uiModulesContainer && !uiModulesContainer.querySelector(UI_MODULES_EL_SELECTOR)) {
+          const uiModulesEl = document.createElement(UI_MODULES_EL_SELECTOR);
+          uiModulesContainer.appendChild(uiModulesEl);
+        }
         if (channel === 'voice') {
           createTranscriptUIElement();
         }
