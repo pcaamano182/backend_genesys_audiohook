@@ -105,7 +105,12 @@
         // Send join-conversation event if we have a conversationid
         if (currentConversationId) {
           const conversationName = 'projects/' + conversationProfile.split('/')[1] + '/conversations/a' + currentConversationId;
-          connector.eventBasedClient.emit('join-conversation', conversationName);
+          // Wait for connector to be ready, then emit join-conversation
+          setTimeout(function() {
+            if (connector.eventBasedClient && connector.eventBasedClient.emit) {
+              connector.eventBasedClient.emit('join-conversation', conversationName);
+            }
+          }, 1000);
         }
       }
 
