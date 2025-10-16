@@ -103,21 +103,6 @@
         }
 
         connector.init(config);
-
-        // Send join-conversation event if we have a conversationid
-        // Connect directly with SocketIO to send join-conversation
-        if (currentConversationId && accessToken) {
-          const conversationName = 'projects/' + conversationProfile.split('/')[1] + '/conversations/a' + currentConversationId;
-          const socket = io(proxyServer, {
-            auth: {
-              token: accessToken
-            }
-          });
-          socket.on('connect', function() {
-            socket.emit('join-conversation', conversationName);
-            console.log('Sent join-conversation for:', conversationName);
-          });
-        }
       }
 
       function getKnowledgeAssistConfig() {
@@ -157,6 +142,20 @@
             if (firstTimeLoad) {
               accessToken = body.token;
               createUIElement(accessToken);
+            }
+
+            // Send join-conversation event after we have the token
+            if (currentConversationId && body.token) {
+              const conversationName = 'projects/' + conversationProfile.split('/')[1] + '/conversations/a' + currentConversationId;
+              const socket = io(proxyServer, {
+                auth: {
+                  token: body.token
+                }
+              });
+              socket.on('connect', function() {
+                socket.emit('join-conversation', conversationName);
+                console.log('Sent join-conversation for:', conversationName);
+              });
             }
           });
         });
