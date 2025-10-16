@@ -125,8 +125,10 @@
       }
 
       /** After the genesys OAuth, get the access token */
+      console.log('Setting up genesys-cloud-connector-access-token-received listener, conversationid:', currentConversationId);
       addAgentAssistEventListener(
         'genesys-cloud-connector-access-token-received', function (event) {
+          console.log('OAuth token received event fired!');
           const genesysCloudAccessToken = event.detail.accessToken;
           authenticateGenesysCloud(genesysCloudAccessToken).then(function (res) {
             if (res.status !== 200) {
