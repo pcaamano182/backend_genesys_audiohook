@@ -153,21 +153,52 @@
             firstTimeLoad = existingUiModulesEl && !accessToken;
             if (firstTimeLoad) {
               accessToken = body.token;
+              console.log('Got JWT token, reinitializing connector with SocketIO auth');
+              // Reinitialize connector with JWT token for SocketIO
+              connector = new UiModulesConnector();
+              const config = {
+                channel: channel,
+                agentDesktop: 'GenesysCloud',
+                conversationProfileName: conversationProfile,
+                apiConfig: {
+                  authToken: accessToken,
+                  customApiEndpoint: proxyServer,
+                },
+                useCustomConversationId: true,
+                oauthClientId: clientId,
+                redirectUri: redirectUri,
+                genesysCloudRegion: genesysCloudRegion,
+                eventBasedConfig: {
+                  notifierServerEndpoint: proxyServer,
+                  library: 'SocketIo',
+                  auth: {
+                    token: accessToken
+                  }
+                }
+              };
+              if (channel !== 'voice') {
+                transcriptContainer.style.display = 'none';
+              }
+              connector.init(config);
               createUIElement(accessToken);
             }
 
             // Send join-conversation event after we have the token
             if (currentConversationId && body.token) {
               const conversationName = 'projects/' + conversationProfile.split('/')[1] + '/conversations/a' + currentConversationId;
-              const socket = io(proxyServer, {
-                auth: {
-                  token: body.token
-                }
-              });
-              socket.on('connect', function() {
-                socket.emit('join-conversation', conversationName);
-                console.log('Sent join-conversation for:', conversationName);
-              });
+              console.log('Sending join-conversation for:', conversationName);
+              // Wait for connector to be ready, then emit via connector's SocketIO
+              setTimeout(function() {
+                const socket = io(proxyServer, {
+                  auth: {
+                    token: body.token
+                  }
+                });
+                socket.on('connect', function() {
+                  socket.emit('join-conversation', conversationName);
+                  console.log('Sent join-conversation for:', conversationName);
+                });
+              }, 500);
             }
           });
         });
