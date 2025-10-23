@@ -14,8 +14,6 @@
   <script src="https://www.gstatic.com/agent-assist-ui-modules/v1.8/common.js"></script>
   <script src="https://www.gstatic.com/agent-assist-ui-modules/v1.3/transcript.js"></script>
   <script src="https://www.gstatic.com/agent-assist-ui-modules/v2.0/container.js"></script>
-  <!-- SocketIO client for direct connection -->
-  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 
 </head>
 <body>
@@ -41,17 +39,7 @@
       var applicationServer = '<%= applicationServer %>';
       var accessToken = '';
       const urlParams = new URLSearchParams(window.location.search);
-      var currentConversationId = urlParams.get('conversationid');
-
-      // Save conversationid to sessionStorage if present, or retrieve it if missing
-      if (currentConversationId) {
-        sessionStorage.setItem('genesys_conversation_id', currentConversationId);
-        console.log('Saved conversationid to sessionStorage:', currentConversationId);
-      } else if (sessionStorage.getItem('genesys_conversation_id')) {
-        currentConversationId = sessionStorage.getItem('genesys_conversation_id');
-        console.log('Retrieved conversationid from sessionStorage:', currentConversationId);
-      }
-
+      const currentConversationId = urlParams.get('conversationid');
       const gcHostOrigin = urlParams.get('gcHostOrigin');
       const gcTargetEnv = urlParams.get('gcTargetEnv') || genesysCloudRegion;
       applicationServer = applicationServer.replace(/\/$/, "");
@@ -135,10 +123,8 @@
       }
 
       /** After the genesys OAuth, get the access token */
-      console.log('Setting up genesys-cloud-connector-access-token-received listener, conversationid:', currentConversationId);
       addAgentAssistEventListener(
         'genesys-cloud-connector-access-token-received', function (event) {
-          console.log('OAuth token received event fired!');
           const genesysCloudAccessToken = event.detail.accessToken;
           authenticateGenesysCloud(genesysCloudAccessToken).then(function (res) {
             if (res.status !== 200) {
@@ -153,52 +139,7 @@
             firstTimeLoad = existingUiModulesEl && !accessToken;
             if (firstTimeLoad) {
               accessToken = body.token;
-              console.log('Got JWT token, reinitializing connector with SocketIO auth');
-              // Reinitialize connector with JWT token for SocketIO
-              connector = new UiModulesConnector();
-              const config = {
-                channel: channel,
-                agentDesktop: 'GenesysCloud',
-                conversationProfileName: conversationProfile,
-                apiConfig: {
-                  authToken: accessToken,
-                  customApiEndpoint: proxyServer,
-                },
-                useCustomConversationId: true,
-                oauthClientId: clientId,
-                redirectUri: redirectUri,
-                genesysCloudRegion: genesysCloudRegion,
-                eventBasedConfig: {
-                  notifierServerEndpoint: proxyServer,
-                  library: 'SocketIo',
-                  auth: {
-                    token: accessToken
-                  }
-                }
-              };
-              if (channel !== 'voice') {
-                transcriptContainer.style.display = 'none';
-              }
-              connector.init(config);
               createUIElement(accessToken);
-            }
-
-            // Send join-conversation event after we have the token
-            if (currentConversationId && body.token) {
-              const conversationName = 'projects/' + conversationProfile.split('/')[1] + '/conversations/a' + currentConversationId;
-              console.log('Sending join-conversation for:', conversationName);
-              // Wait for connector to be ready, then emit via connector's SocketIO
-              setTimeout(function() {
-                const socket = io(proxyServer, {
-                  auth: {
-                    token: body.token
-                  }
-                });
-                socket.on('connect', function() {
-                  socket.emit('join-conversation', conversationName);
-                  console.log('Sent join-conversation for:', conversationName);
-                });
-              }, 500);
             }
           });
         });
