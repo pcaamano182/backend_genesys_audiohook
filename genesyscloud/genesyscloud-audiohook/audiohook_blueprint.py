@@ -346,7 +346,8 @@ def audiohook_connect(ws: Server):
                     ws.send(json.dumps(audiohook.create_opened_message()))
                 elif conversation_id != DEFAULT_CONVERSATION_ID and open_conversation_state is None:
                     # Fetch Genesys conversation details via SDK
-                    get_genesys_conversation_details(conversation_id)
+                    # Commented out: we already have conversation ID, don't need additional details
+                    # get_genesys_conversation_details(conversation_id)
                     # Get the first "open" message for real conversation
                     # open_state contains the agent and user thread for
                     # calling streaming_analyze_content
