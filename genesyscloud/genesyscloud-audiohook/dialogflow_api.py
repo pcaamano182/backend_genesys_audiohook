@@ -250,7 +250,7 @@ class DialogflowAPI:
                     audio_config, participant, audio_stream))
             # logging.info("Successfully established streaming connection for %s", participant.name)
         except OutOfRange as e:
-            audio_stream.closed = True
+            audio_stream.is_final = True
             logging.error(
                 "OutOfRange error - audio stream exceeded 120 seconds for %s: %s",
                 participant.name, e)
