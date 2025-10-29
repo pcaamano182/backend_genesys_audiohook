@@ -141,7 +141,7 @@ class Stream:
                 return
         try:
             while not self.closed and not self.is_final:
-                if self.speech_end_offset > 110000:
+                if self.speech_end_offset > 90000:
                     # because Genesys is streaming non-stop the audio,
                     # put a hard stop when approaching 120 second limit and produce a
                     # force half close
