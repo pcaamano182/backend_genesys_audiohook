@@ -17,6 +17,7 @@ https://github.com/GoogleCloudPlatform/python-docs-samples/blob/main/dialogflow/
 """
 import logging
 import queue
+import time
 
 import google.cloud.dialogflow_v2beta1 as dialogflow
 
@@ -99,6 +100,8 @@ class Stream:
         # After the restart of the streaming, set is_final to False
         # to resume populating audio data
         self.is_final = False
+        # Track streaming start time for 90-second limit
+        stream_start_time = time.time()
         total_processed_time = self.last_start_time + self.is_final_offset
         # ApproximatesBytes = Rate(Sample per Second) * Duration(Seconds) *  BitRate(Bits per Sample) / 8
         # MULAW audio format is 8bit depth, 8000HZ then convert bits to bytes by
@@ -141,10 +144,13 @@ class Stream:
                 return
         try:
             while not self.closed and not self.is_final:
-                if self.speech_end_offset > 90000:
+                # Check actual streaming time (90 seconds = 90000ms)
+                elapsed_time = (time.time() - stream_start_time) * 1000
+                if elapsed_time > 90000:
                     # because Genesys is streaming non-stop the audio,
                     # put a hard stop when approaching 120 second limit and produce a
                     # force half close
+                    logging.info("⏱️ Streaming time exceeded 90s threshold (%.1fs) - triggering restart", elapsed_time / 1000)
                     self.is_final = True
                     break
                 data = []
