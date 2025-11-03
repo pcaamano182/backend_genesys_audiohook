@@ -31,7 +31,7 @@ from audio_stream import Stream
 from audiohook import DEFAULT_CONVERSATION_ID, AudioHook
 from audiohook_config import config
 from dialogflow_api import (DialogflowAPI, await_redis, create_conversation_name,
-                            find_participant_by_role, location_id, project)
+                            find_participant_by_role, location_id, project, redis_client)
 
 # Genesys Cloud SDK imports
 import PureCloudPlatformClientV2
@@ -151,7 +151,6 @@ def periodic_conversation_summary(
     import time
     from datetime import datetime
 
-    redis_client = await_redis()
     logging.info("📊 Starting periodic summarization thread for %s (interval: %d seconds)",
                 conversation_name, interval_seconds)
 
