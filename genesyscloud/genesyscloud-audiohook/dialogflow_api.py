@@ -334,6 +334,29 @@ class DialogflowAPI:
         )
         logging.debug("Call complete conversation for %s", conversation_name)
 
+    def suggest_conversation_summary(self, conversation_name: str):
+        """Generate a conversation summary using Dialogflow API
+
+        Args:
+            conversation_name: Full Dialogflow conversation resource name
+
+        Returns:
+            SuggestConversationSummaryResponse or None if error
+        """
+        try:
+            request = dialogflow.SuggestConversationSummaryRequest(
+                conversation=conversation_name,
+                latest_message=None,
+                context_size=0
+            )
+            response = self.conversations_client.suggest_conversation_summary(request)
+            logging.debug("Conversation summary suggested for %s", conversation_name)
+            return response
+        except Exception as e:
+            logging.error("Error generating conversation summary for %s: %s",
+                         conversation_name, e)
+            return None
+
     def generator_streaming_analyze_content_request(
             self,
             audio_config: dialogflow.InputAudioConfig,

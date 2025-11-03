@@ -14,6 +14,8 @@
   <script src="https://www.gstatic.com/agent-assist-ui-modules/v1.8/common.js"></script>
   <script src="https://www.gstatic.com/agent-assist-ui-modules/v1.3/transcript.js"></script>
   <script src="https://www.gstatic.com/agent-assist-ui-modules/v2.0/container.js"></script>
+  <!-- Conversation Summarization UI Module -->
+  <script src="https://www.gstatic.com/agent-assist-ui-modules/v1/summarization.js"></script>
 
 </head>
 <body>
@@ -21,6 +23,7 @@
     <div class="transcript-container"></div>
     <div class="ui-modules-wrapper">
       <div class="ui-modules-container"> </div>
+      <agent-assist-summarization show-generate-summary-button="false"></agent-assist-summarization>
     </div>
   </div>
   <script>
@@ -163,6 +166,70 @@
                 headers: [['Authorization', accessToken]],
               });
         }
+
+      /**
+       * Initialize Socket.IO listener for periodic summaries
+       */
+      function initSummaryListener() {
+        // Import Socket.IO client library
+        const script = document.createElement('script');
+        script.src = 'https://cdn.socket.io/4.5.4/socket.io.min.js';
+        script.onload = function() {
+          console.log('📊 Initializing summary Socket.IO listener');
+
+          // Connect to UI Connector
+          const socket = io(proxyServer, {
+            auth: {
+              token: accessToken
+            }
+          });
+
+          socket.on('connect', function() {
+            console.log('✅ Connected to summary socket');
+          });
+
+          // Listen for conversation-started event to join the correct room
+          addAgentAssistEventListener('conversation-started', function(event) {
+            if (event.detail && event.detail.conversationName) {
+              const conversationName = event.detail.conversationName;
+              // Strip location from conversation name for room matching
+              const conversationNameWithoutLocation = conversationName.replace('/locations/global', '');
+              console.log('🔗 Joining conversation room:', conversationNameWithoutLocation);
+              socket.emit('join-conversation', conversationNameWithoutLocation);
+            }
+          });
+
+          // Listen for conversation-summarization-received events from backend
+          socket.on('conversation-summarization-received', function(data) {
+            console.log('📝 Received conversation summary event:', data);
+
+            try {
+              // Parse the data field which contains the summary event
+              const summaryEvent = JSON.parse(data.data);
+
+              // Dispatch the event to the Agent Assist UI Module
+              dispatchAgentAssistEvent('conversation-summarization-received', {
+                detail: summaryEvent
+              });
+
+              console.log('✅ Dispatched summary event to UI Module');
+            } catch (e) {
+              console.error('❌ Error processing summary event:', e);
+            }
+          });
+
+          socket.on('disconnect', function() {
+            console.log('❌ Disconnected from summary socket');
+          });
+        };
+        document.head.appendChild(script);
+      }
+
+      // Initialize summary listener after authentication
+      addAgentAssistEventListener('genesys-cloud-connector-access-token-received', function(event) {
+        setTimeout(initSummaryListener, 2000); // Wait for auth to complete
+      });
+
       });
   </script>
 </body>

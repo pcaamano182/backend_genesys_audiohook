@@ -131,6 +131,84 @@ class OpenConversationState:
     participant_user: object
     agent_audio_config: object
     customer_audio_config: object
+    stop_summary: bool = field(default=False)
+    summary_thread: Thread = field(default=None)
+
+
+def periodic_conversation_summary(
+        conversation_name: str,
+        dialogflow_api: DialogflowAPI,
+        open_conversation_state: OpenConversationState,
+        interval_seconds: int = 60):
+    """Generate conversation summary periodically and publish to Redis
+
+    Args:
+        conversation_name: Full Dialogflow conversation resource name
+        dialogflow_api: DialogflowAPI instance
+        open_conversation_state: State object to check stop_summary flag
+        interval_seconds: How often to generate summary (default 60 seconds)
+    """
+    import time
+    from datetime import datetime
+
+    redis_client = await_redis()
+    logging.info("📊 Starting periodic summarization thread for %s (interval: %d seconds)",
+                conversation_name, interval_seconds)
+
+    # Strip location from conversation name for Redis room matching
+    conversation_name_without_location = conversation_name.replace('/locations/global', '')
+    summary_count = 0
+
+    while not open_conversation_state.stop_summary:
+        time.sleep(interval_seconds)
+
+        if open_conversation_state.stop_summary:
+            break
+
+        summary_count += 1
+        logging.info("⏰ Triggering periodic conversation summary #%d for %s",
+                    summary_count, conversation_name)
+
+        summary_response = dialogflow_api.suggest_conversation_summary(conversation_name)
+
+        if summary_response and summary_response.summary:
+            summary_text = summary_response.summary.text
+            logging.info("📝 Summary #%d generated (%d chars): %s",
+                       summary_count, len(summary_text), summary_text[:200])
+
+            # Get the SERVER_ID for this conversation from Redis
+            server_id = redis_client.get(conversation_name_without_location)
+            if server_id:
+                server_id = str(server_id, encoding='utf-8')
+                channel = f"{server_id}:{conversation_name_without_location}"
+
+                # Prepare summary event payload matching Dialogflow format
+                summary_event = {
+                    'conversationName': conversation_name,
+                    'payload': {
+                        'summary': {
+                            'text': summary_text,
+                            'textSections': {}
+                        }
+                    }
+                }
+
+                # Publish as conversation-summarization-received event
+                message = {
+                    'conversation_name': conversation_name_without_location,
+                    'data': json.dumps(summary_event),
+                    'data_type': 'conversation-summarization-received'
+                }
+
+                redis_client.publish(channel, json.dumps(message))
+                logging.info("✅ Published summary #%d to channel: %s", summary_count, channel)
+            else:
+                logging.warning("⚠️ No SERVER_ID found for conversation: %s",
+                              conversation_name_without_location)
+        else:
+            logging.warning("⚠️ No summary generated for %s", conversation_name)
+
+    logging.info("🛑 Stopped periodic summarization for %s", conversation_name)
 
 
 def process_open_conversation_message(
@@ -193,8 +271,8 @@ def process_open_conversation_message(
     user_thread.start()
     logging.info("✅ Speech-to-text threads started successfully")
 
-    ws.send(json.dumps(audiohook.create_opened_message()))
-    return OpenConversationState(
+    # Create OpenConversationState first
+    open_conversation_state = OpenConversationState(
         agent_thread,
         user_thread,
         conversation_name,
@@ -203,6 +281,18 @@ def process_open_conversation_message(
         participant_user,
         agent_audio_config,
         customer_audio_config)
+
+    # Start periodic conversation summary thread (1 minute interval for testing)
+    summary_thread = Thread(
+        target=periodic_conversation_summary,
+        args=(conversation_name, dialogflow_api, open_conversation_state, 60)
+    )
+    summary_thread.start()
+    open_conversation_state.summary_thread = summary_thread
+    logging.info("✅ Periodic summary thread started (60 second interval)")
+
+    ws.send(json.dumps(audiohook.create_opened_message()))
+    return open_conversation_state
 
 
 def process_ongoing_conversation_messages(
@@ -259,6 +349,12 @@ def process_ongoing_conversation_messages(
             customer_stream.closed = True
             agent_stream.terminate = True
             customer_stream.terminate = True
+
+            # Stop periodic summary thread
+            if open_conversation_state.summary_thread:
+                open_conversation_state.stop_summary = True
+                logging.info("🛑 Stopping periodic summary thread")
+
             ws.send(json.dumps(audiohook.create_close_message()))
             try:
                 dialogflow_api.complete_conversation(
