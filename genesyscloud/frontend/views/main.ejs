@@ -189,68 +189,10 @@
             auth: { token: accessToken }
           });
 
-          let hasJoinedRoom = false;
-          let currentConversationName = null;
-
-          function joinConversationRoom(conversationName) {
-            if (hasJoinedRoom) {
-              console.log('ℹ️ [SUMMARY] Already joined room');
-              return;
-            }
-            console.log('🔗 [SUMMARY] Joining conversation room:', conversationName);
-            summarySocket.emit('join-conversation', conversationName);
-            hasJoinedRoom = true;
-            currentConversationName = conversationName;
-          }
-
           summarySocket.on('connect', function() {
             console.log('✅ [SUMMARY] Connected - Socket ID:', summarySocket.id);
-
-            // Rejoin room if reconnecting
-            if (currentConversationName) {
-              console.log('🔗 [SUMMARY] Rejoining after reconnect:', currentConversationName);
-              summarySocket.emit('join-conversation', currentConversationName);
-            }
+            console.log('📡 [SUMMARY] Ready to receive summary broadcasts');
           });
-
-          // Monitor URL for conversationId parameter (Genesys adds it when call starts)
-          function monitorUrlForConversationId() {
-            if (hasJoinedRoom) {
-              return;
-            }
-
-            // Re-read URL params each time (they change dynamically)
-            console.log('🔍 [SUMMARY] Current URL:', window.location.href);
-            const currentUrlParams = new URLSearchParams(window.location.search);
-            const conversationId = currentUrlParams.get('conversationid');
-            console.log('🔍 [SUMMARY] conversationid from URL:', conversationId);
-
-            if (!conversationId) {
-              setTimeout(monitorUrlForConversationId, 2000);
-              return;
-            }
-
-            console.log('🔍 [SUMMARY] Building conversation name for conversationId:', conversationId);
-
-            // Extract project from conversationProfile
-            // Format: projects/{project}/locations/{location}/conversationProfiles/{id}
-            const projectMatch = conversationProfile.match(/projects\/([^\/]+)/);
-            if (!projectMatch) {
-              console.error('❌ [SUMMARY] Could not extract project from conversationProfile');
-              return;
-            }
-            const project = projectMatch[1];
-
-            // Build conversation name (AudioHook adds 'a' prefix to Genesys conversation IDs)
-            const normalizedConversationId = 'a' + conversationId;
-            const conversationName = `projects/${project}/conversations/${normalizedConversationId}`;
-
-            console.log('🎯 [SUMMARY] Built conversation name:', conversationName);
-            joinConversationRoom(conversationName);
-          }
-
-          // Start monitoring URL for conversationId
-          monitorUrlForConversationId();
 
           // Listen for summary events on the summary socket
           summarySocket.on('conversation-summarization-received', function(data) {
