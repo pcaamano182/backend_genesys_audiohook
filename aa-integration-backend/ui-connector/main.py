@@ -41,8 +41,18 @@ def redis_pubsub_handler(message):
     """Handles messages from Redis Pub/Sub."""
     logging.info('Redis Pub/Sub Received data: {}'.format(message))
     msg_object = json.loads(message['data'])
-    socketio.emit(msg_object['data_type'], msg_object,
-                  to=msg_object['conversation_name'])
+
+    # For conversation summaries, broadcast to all authenticated sockets
+    # since frontend may not know the conversation name to join the room
+    if msg_object.get('data_type') == 'conversation-summarization-received':
+        socketio.emit(msg_object['data_type'], msg_object)
+        logging.info('Broadcasting summary to all sockets for conversation: {}'.format(
+            msg_object.get('conversation_name')))
+    else:
+        # For other events, emit only to the specific conversation room
+        socketio.emit(msg_object['data_type'], msg_object,
+                      to=msg_object['conversation_name'])
+
     logging.info('Redis Subscribe: {0},{1},{2},{3}; conversation_name: {4}, data_type: {5}.'.format(
         message['type'],
         message['pattern'],
