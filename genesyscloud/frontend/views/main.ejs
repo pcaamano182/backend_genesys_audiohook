@@ -213,43 +213,49 @@
             }
           });
 
-          // DIRECT APPROACH: Monitor the transcript UI element for activity
-          // When transcripts start appearing, extract conversation ID and join room
-          const transcriptEl = document.querySelector('agent-assist-transcript');
-          if (transcriptEl) {
-            console.log('📊 [SUMMARY] Found transcript element, setting up observer');
+          // DIRECT APPROACH: Monitor for when transcript element appears and gets conversation
+          function setupTranscriptObserver() {
+            const transcriptEl = document.querySelector('agent-assist-transcript');
+            if (transcriptEl) {
+              console.log('📊 [SUMMARY] Found transcript element, setting up observer');
 
-            // Observer to detect when transcript receives data
-            const observer = new MutationObserver(function(mutations) {
-              if (!hasJoinedRoom) {
-                // Check if transcript element has conversation-name attribute
-                const convName = transcriptEl.getAttribute('conversation-name');
-                if (convName) {
-                  const conversationName = convName.replace('/locations/global', '');
-                  console.log('🎯 [SUMMARY] Detected conversation from transcript element:', conversationName);
-                  joinConversationRoom(conversationName);
-                  observer.disconnect(); // Stop observing once joined
+              // Observer to detect when transcript receives data
+              const observer = new MutationObserver(function(mutations) {
+                if (!hasJoinedRoom) {
+                  // Check if transcript element has conversation-name attribute
+                  const convName = transcriptEl.getAttribute('conversation-name');
+                  if (convName) {
+                    const conversationName = convName.replace('/locations/global', '');
+                    console.log('🎯 [SUMMARY] Detected conversation from transcript element:', conversationName);
+                    joinConversationRoom(conversationName);
+                    observer.disconnect(); // Stop observing once joined
+                  }
                 }
+              });
+
+              observer.observe(transcriptEl, {
+                attributes: true,
+                attributeFilter: ['conversation-name'],
+                childList: true,
+                subtree: true
+              });
+
+              // Also check immediately in case it's already set
+              const existingConvName = transcriptEl.getAttribute('conversation-name');
+              if (existingConvName) {
+                const conversationName = existingConvName.replace('/locations/global', '');
+                console.log('🎯 [SUMMARY] Found existing conversation on transcript:', conversationName);
+                joinConversationRoom(conversationName);
               }
-            });
-
-            observer.observe(transcriptEl, {
-              attributes: true,
-              attributeFilter: ['conversation-name'],
-              childList: true,
-              subtree: true
-            });
-
-            // Also check immediately in case it's already set
-            const existingConvName = transcriptEl.getAttribute('conversation-name');
-            if (existingConvName) {
-              const conversationName = existingConvName.replace('/locations/global', '');
-              console.log('🎯 [SUMMARY] Found existing conversation on transcript:', conversationName);
-              joinConversationRoom(conversationName);
+            } else {
+              console.log('⏳ [SUMMARY] Transcript element not found yet, will retry...');
+              // Transcript element doesn't exist yet, wait and try again
+              setTimeout(setupTranscriptObserver, 1000);
             }
-          } else {
-            console.warn('⚠️ [SUMMARY] Transcript element not found, cannot auto-join room');
           }
+
+          // Start trying to find transcript element
+          setupTranscriptObserver();
 
           // Listen for summary events on the summary socket
           summarySocket.on('conversation-summarization-received', function(data) {
