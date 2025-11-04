@@ -22,10 +22,7 @@
   <div class="app-container">
     <div class="transcript-container"></div>
     <div class="summaries-panel" id="summaries-panel">
-      <div class="summaries-header" id="summaries-header">
-        <span>📊 Conversation Summaries</span>
-        <button class="collapse-btn" id="collapse-btn" title="Collapse/Expand">▼</button>
-      </div>
+      <div class="summaries-header">📊 Conversation Summaries</div>
       <div class="summaries-content" id="summaries-content">
         <div class="no-summaries">No summaries generated yet...</div>
       </div>
@@ -266,17 +263,12 @@
             noSummaries.remove();
           }
 
-          // Calculate which minute this summary represents
-          const existingSummaries = summariesContent.querySelectorAll('.summary-card').length;
-          const summaryMinute = (existingSummaries + 1) * 1; // Each summary is at 1min intervals
-          const timestamp = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-
           const card = document.createElement('div');
           card.className = 'summary-card';
 
           const title = document.createElement('div');
           title.className = 'summary-title';
-          title.textContent = `📊 Summary at ${summaryMinute}min (${timestamp})`;
+          title.textContent = '📊 Periodic Summary';
 
           const content = document.createElement('div');
           content.className = 'summary-content';
@@ -296,37 +288,6 @@
           console.error('❌ [SUMMARY] Error displaying summary:', e);
         }
       }
-
-      // Collapse/Expand functionality
-      function initCollapse() {
-        const collapseBtn = document.getElementById('collapse-btn');
-        const summariesContent = document.getElementById('summaries-content');
-        const summariesPanel = document.getElementById('summaries-panel');
-        let isCollapsed = false;
-
-        if (collapseBtn) {
-          collapseBtn.addEventListener('click', function() {
-            isCollapsed = !isCollapsed;
-
-            if (isCollapsed) {
-              summariesContent.style.display = 'none';
-              summariesPanel.style.width = 'auto';
-              summariesPanel.style.minWidth = '200px';
-              collapseBtn.textContent = '▶';
-            } else {
-              summariesContent.style.display = 'flex';
-              summariesPanel.style.width = '300px';
-              summariesPanel.style.minWidth = '300px';
-              collapseBtn.textContent = '▼';
-            }
-          });
-        }
-      }
-
-      // Initialize collapse on page load
-      window.addEventListener('load', function() {
-        initCollapse();
-      });
 
       // Initialize summary listener after authentication
       addAgentAssistEventListener('genesys-cloud-connector-access-token-received', function(event) {
