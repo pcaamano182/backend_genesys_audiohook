@@ -213,19 +213,23 @@
             }
           });
 
-          // Build conversation name from URL params
-          function buildConversationNameAndJoin() {
+          // Monitor URL for conversationId parameter (Genesys adds it when call starts)
+          function monitorUrlForConversationId() {
             if (hasJoinedRoom) {
               return;
             }
 
-            if (!currentConversationId) {
-              console.log('⚠️ [SUMMARY] No conversationId in URL params yet, will retry...');
-              setTimeout(buildConversationNameAndJoin, 1000);
+            // Re-read URL params each time (they change dynamically)
+            const currentUrlParams = new URLSearchParams(window.location.search);
+            const conversationId = currentUrlParams.get('conversationid');
+
+            if (!conversationId) {
+              // console.log('⚠️ [SUMMARY] No conversationId in URL params yet, will retry...');
+              setTimeout(monitorUrlForConversationId, 500);
               return;
             }
 
-            console.log('🔍 [SUMMARY] Building conversation name for conversationId:', currentConversationId);
+            console.log('🔍 [SUMMARY] Building conversation name for conversationId:', conversationId);
 
             // Extract project from conversationProfile
             // Format: projects/{project}/locations/{location}/conversationProfiles/{id}
@@ -237,15 +241,15 @@
             const project = projectMatch[1];
 
             // Build conversation name (AudioHook adds 'a' prefix to Genesys conversation IDs)
-            const normalizedConversationId = 'a' + currentConversationId;
+            const normalizedConversationId = 'a' + conversationId;
             const conversationName = `projects/${project}/conversations/${normalizedConversationId}`;
 
             console.log('🎯 [SUMMARY] Built conversation name:', conversationName);
             joinConversationRoom(conversationName);
           }
 
-          // Start trying to build conversation name
-          buildConversationNameAndJoin();
+          // Start monitoring URL for conversationId
+          monitorUrlForConversationId();
 
           // Listen for summary events on the summary socket
           summarySocket.on('conversation-summarization-received', function(data) {
