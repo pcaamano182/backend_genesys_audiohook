@@ -21,9 +21,14 @@
 <body>
   <div class="app-container">
     <div class="transcript-container"></div>
+    <div class="summaries-panel" id="summaries-panel">
+      <div class="summaries-header">📊 Conversation Summaries</div>
+      <div class="summaries-content" id="summaries-content">
+        <div class="no-summaries">No summaries generated yet...</div>
+      </div>
+    </div>
     <div class="ui-modules-wrapper">
       <div class="ui-modules-container"> </div>
-      <agent-assist-summarization show-generate-summary-button="false"></agent-assist-summarization>
     </div>
   </div>
   <script>
@@ -168,44 +173,100 @@
         }
 
       /**
-       * Listen for conversation summary events from Agent Assist
-       * These events come through the UI Connector's existing Socket.IO connection
+       * Initialize separate Socket.IO connection for summaries
        */
       function initSummaryListener() {
-        console.log('📊 [SUMMARY] Setting up summary event listeners');
+        console.log('📊 [SUMMARY] Initializing summary Socket.IO listener');
 
-        // Listen for ALL Agent Assist events to debug
-        window.addEventListener('agent-assist-event', function(event) {
-          console.log('🔔 [SUMMARY] Agent Assist Event:', event.type, event.detail);
+        // Import Socket.IO client library
+        const script = document.createElement('script');
+        script.src = 'https://cdn.socket.io/4.5.4/socket.io.min.js';
+        script.onload = function() {
+          console.log('📊 [SUMMARY] Socket.IO library loaded');
 
-          // Check if this is a conversation-summarization-received event
-          if (event.type === 'conversation-summarization-received') {
-            console.log('📝 [SUMMARY] ===== Received conversation summary event =====');
-            console.log('📝 [SUMMARY] Summary data:', event.detail);
-          }
-        });
+          // Connect to UI Connector with a separate socket for summaries
+          const summarySocket = io(proxyServer, {
+            auth: { token: accessToken }
+          });
 
-        // Specifically listen for conversation-summarization-received events
-        addAgentAssistEventListener('conversation-summarization-received', function(event) {
-          console.log('📝 [SUMMARY] ===== Conversation Summary Received =====');
-          console.log('📝 [SUMMARY] Event detail:', event.detail);
+          let hasJoinedRoom = false;
 
-          if (event.detail && event.detail.payload && event.detail.payload.summary) {
-            const summaryText = event.detail.payload.summary.text;
-            console.log('📝 [SUMMARY] Summary text:', summaryText);
-            console.log('✅ [SUMMARY] Summary event processed successfully');
-          } else {
-            console.warn('⚠️ [SUMMARY] Summary event has unexpected structure');
-          }
-        });
+          summarySocket.on('connect', function() {
+            console.log('✅ [SUMMARY] Connected - Socket ID:', summarySocket.id);
+          });
 
-        console.log('✅ [SUMMARY] Summary listeners initialized');
+          // Strategy: Listen to ALL Socket.IO events
+          // Join the room based on the FIRST event that has conversation_name
+          summarySocket.onAny(function(eventName, data) {
+            console.log('🔊 [SUMMARY] Event:', eventName, data);
+
+            // Auto-join room from first event with conversation_name
+            if (!hasJoinedRoom && data && data.conversation_name) {
+              console.log('🔗 [SUMMARY] Found conversation, joining room:', data.conversation_name);
+              summarySocket.emit('join-conversation', data.conversation_name);
+              hasJoinedRoom = true;
+            }
+
+            // Handle summary events
+            if (eventName === 'conversation-summarization-received') {
+              console.log('📝 [SUMMARY] ===== Summary Received =====');
+              displaySummary(data);
+            }
+          });
+
+          summarySocket.on('disconnect', function() {
+            console.log('❌ [SUMMARY] Disconnected');
+            hasJoinedRoom = false;
+          });
+        };
+        document.head.appendChild(script);
       }
 
-      // Initialize summary listener after connector is ready
+      function displaySummary(data) {
+        try {
+          console.log('📝 [SUMMARY] Processing summary data:', data);
+
+          const parsedData = JSON.parse(data.data);
+          const summaryText = parsedData.payload.summary.text;
+
+          console.log('📝 [SUMMARY] Summary text:', summaryText);
+
+          const summariesContent = document.getElementById('summaries-content');
+          const noSummaries = summariesContent.querySelector('.no-summaries');
+          if (noSummaries) {
+            noSummaries.remove();
+          }
+
+          const card = document.createElement('div');
+          card.className = 'summary-card';
+
+          const title = document.createElement('div');
+          title.className = 'summary-title';
+          title.textContent = '📊 Periodic Summary';
+
+          const content = document.createElement('div');
+          content.className = 'summary-content';
+          content.textContent = summaryText;
+
+          const timestamp = document.createElement('div');
+          timestamp.className = 'summary-timestamp';
+          timestamp.textContent = `Generated at ${new Date().toLocaleTimeString()}`;
+
+          card.appendChild(title);
+          card.appendChild(content);
+          card.appendChild(timestamp);
+          summariesContent.insertBefore(card, summariesContent.firstChild);
+
+          console.log('✅ [SUMMARY] Summary displayed in panel');
+        } catch (e) {
+          console.error('❌ [SUMMARY] Error displaying summary:', e);
+        }
+      }
+
+      // Initialize summary listener after authentication
       addAgentAssistEventListener('genesys-cloud-connector-access-token-received', function(event) {
-        console.log('📊 [SUMMARY] Access token received, initializing summary listeners');
-        setTimeout(initSummaryListener, 1000);
+        console.log('📊 [SUMMARY] Access token received, initializing summary socket');
+        setTimeout(initSummaryListener, 2000);
       });
 
       });

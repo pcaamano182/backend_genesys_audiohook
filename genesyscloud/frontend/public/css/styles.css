@@ -59,6 +59,75 @@ body {
     overflow: auto;
 }
 
+.summaries-panel {
+    width: 300px;
+    height: 100%;
+    border-left: 1px solid #dadce0;
+    border-right: 1px solid #dadce0;
+    background-color: #f8f9fa;
+    display: flex;
+    flex-direction: column;
+}
+
+.summaries-header {
+    padding: 16px;
+    font-family: 'Google Sans', Arial, sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    color: #202124;
+    border-bottom: 1px solid #dadce0;
+    background-color: #fff;
+}
+
+.summaries-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+}
+
+.no-summaries {
+    font-family: 'Roboto', sans-serif;
+    font-size: 13px;
+    color: #5f6368;
+    text-align: center;
+    padding: 24px;
+}
+
+.summary-card {
+    background-color: #fff;
+    border: 1px solid #dadce0;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3);
+}
+
+.summary-title {
+    font-family: 'Google Sans', Arial, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: #1a73e8;
+    margin-bottom: 8px;
+}
+
+.summary-content {
+    font-family: 'Roboto', sans-serif;
+    font-size: 12px;
+    color: #202124;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.summary-timestamp {
+    font-family: 'Roboto', sans-serif;
+    font-size: 11px;
+    color: #5f6368;
+    margin-top: 8px;
+    font-style: italic;
+}
+
 .header-bar {
     display: flex;
     align-items: center;
