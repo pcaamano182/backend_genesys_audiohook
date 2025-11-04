@@ -213,51 +213,39 @@
             }
           });
 
-          // Get conversation name from backend using conversationIntegrationKey
-          function fetchConversationNameAndJoin() {
+          // Build conversation name from URL params
+          function buildConversationNameAndJoin() {
             if (hasJoinedRoom) {
               return;
             }
 
             if (!currentConversationId) {
               console.log('⚠️ [SUMMARY] No conversationId in URL params yet, will retry...');
-              setTimeout(fetchConversationNameAndJoin, 1000);
+              setTimeout(buildConversationNameAndJoin, 1000);
               return;
             }
 
-            console.log('🔍 [SUMMARY] Fetching conversation name for conversationId:', currentConversationId);
+            console.log('🔍 [SUMMARY] Building conversation name for conversationId:', currentConversationId);
 
-            // Call backend endpoint to get conversation name
-            fetch(`${proxyServer}/conversation-name?conversationIntegrationKey=${currentConversationId}`, {
-              method: 'GET',
-              headers: {
-                'Authorization': `Bearer ${accessToken}`
-              }
-            })
-            .then(function(response) {
-              if (!response.ok) {
-                throw new Error('Failed to fetch conversation name: ' + response.status);
-              }
-              return response.json();
-            })
-            .then(function(data) {
-              if (data.conversation_name) {
-                const conversationName = data.conversation_name.replace('/locations/global', '');
-                console.log('🎯 [SUMMARY] Retrieved conversation name from backend:', conversationName);
-                joinConversationRoom(conversationName);
-              } else {
-                console.log('⚠️ [SUMMARY] Backend has no conversation name yet, will retry...');
-                setTimeout(fetchConversationNameAndJoin, 2000);
-              }
-            })
-            .catch(function(error) {
-              console.error('❌ [SUMMARY] Error fetching conversation name:', error);
-              setTimeout(fetchConversationNameAndJoin, 2000);
-            });
+            // Extract project from conversationProfile
+            // Format: projects/{project}/locations/{location}/conversationProfiles/{id}
+            const projectMatch = conversationProfile.match(/projects\/([^\/]+)/);
+            if (!projectMatch) {
+              console.error('❌ [SUMMARY] Could not extract project from conversationProfile');
+              return;
+            }
+            const project = projectMatch[1];
+
+            // Build conversation name (AudioHook adds 'a' prefix to Genesys conversation IDs)
+            const normalizedConversationId = 'a' + currentConversationId;
+            const conversationName = `projects/${project}/conversations/${normalizedConversationId}`;
+
+            console.log('🎯 [SUMMARY] Built conversation name:', conversationName);
+            joinConversationRoom(conversationName);
           }
 
-          // Start trying to fetch conversation name
-          fetchConversationNameAndJoin();
+          // Start trying to build conversation name
+          buildConversationNameAndJoin();
 
           // Listen for summary events on the summary socket
           summarySocket.on('conversation-summarization-received', function(data) {
