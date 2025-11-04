@@ -77,6 +77,29 @@ body {
     color: #202124;
     border-bottom: 1px solid #dadce0;
     background-color: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+}
+
+.collapse-btn {
+    background: none;
+    border: none;
+    font-size: 14px;
+    color: #5f6368;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.collapse-btn:hover {
+    background-color: #f1f3f4;
+}
+
+.collapse-btn:active {
+    background-color: #e8eaed;
 }
 
 .summaries-content {
