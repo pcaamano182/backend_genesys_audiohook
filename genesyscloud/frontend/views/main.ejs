@@ -213,61 +213,51 @@
             }
           });
 
-          // DIRECT APPROACH: Monitor for when transcript element appears and gets conversation
-          function setupTranscriptObserver() {
-            const transcriptEl = document.querySelector('agent-assist-transcript');
-            if (transcriptEl) {
-              console.log('📊 [SUMMARY] Found transcript element, setting up observer');
+          // Get conversation name from backend using conversationIntegrationKey
+          function fetchConversationNameAndJoin() {
+            if (hasJoinedRoom) {
+              return;
+            }
 
-              // DEBUG: Log all attributes of transcript element
-              console.log('🔍 [SUMMARY] Transcript element attributes:');
-              for (let i = 0; i < transcriptEl.attributes.length; i++) {
-                const attr = transcriptEl.attributes[i];
-                console.log(`  - ${attr.name}: ${attr.value}`);
+            if (!currentConversationId) {
+              console.log('⚠️ [SUMMARY] No conversationId in URL params yet, will retry...');
+              setTimeout(fetchConversationNameAndJoin, 1000);
+              return;
+            }
+
+            console.log('🔍 [SUMMARY] Fetching conversation name for conversationId:', currentConversationId);
+
+            // Call backend endpoint to get conversation name
+            fetch(`${proxyServer}/conversation-name?conversationIntegrationKey=${currentConversationId}`, {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${accessToken}`
               }
-
-              // Observer to detect when transcript receives data
-              const observer = new MutationObserver(function(mutations) {
-                if (!hasJoinedRoom) {
-                  mutations.forEach(function(mutation) {
-                    console.log('🔄 [SUMMARY] Mutation detected:', mutation.type, mutation.attributeName);
-                  });
-
-                  // Check if transcript element has conversation-name attribute
-                  const convName = transcriptEl.getAttribute('conversation-name');
-                  if (convName) {
-                    const conversationName = convName.replace('/locations/global', '');
-                    console.log('🎯 [SUMMARY] Detected conversation from transcript element:', conversationName);
-                    joinConversationRoom(conversationName);
-                    observer.disconnect(); // Stop observing once joined
-                  }
-                }
-              });
-
-              observer.observe(transcriptEl, {
-                attributes: true,
-                childList: true,
-                subtree: true
-              });
-
-              // Also check immediately in case it's already set
-              const existingConvName = transcriptEl.getAttribute('conversation-name');
-              if (existingConvName) {
-                const conversationName = existingConvName.replace('/locations/global', '');
-                console.log('🎯 [SUMMARY] Found existing conversation on transcript:', conversationName);
+            })
+            .then(function(response) {
+              if (!response.ok) {
+                throw new Error('Failed to fetch conversation name: ' + response.status);
+              }
+              return response.json();
+            })
+            .then(function(data) {
+              if (data.conversation_name) {
+                const conversationName = data.conversation_name.replace('/locations/global', '');
+                console.log('🎯 [SUMMARY] Retrieved conversation name from backend:', conversationName);
                 joinConversationRoom(conversationName);
               } else {
-                console.log('⚠️ [SUMMARY] conversation-name attribute not set yet, waiting for mutation...');
+                console.log('⚠️ [SUMMARY] Backend has no conversation name yet, will retry...');
+                setTimeout(fetchConversationNameAndJoin, 2000);
               }
-            } else {
-              console.log('⏳ [SUMMARY] Transcript element not found yet, will retry...');
-              // Transcript element doesn't exist yet, wait and try again
-              setTimeout(setupTranscriptObserver, 1000);
-            }
+            })
+            .catch(function(error) {
+              console.error('❌ [SUMMARY] Error fetching conversation name:', error);
+              setTimeout(fetchConversationNameAndJoin, 2000);
+            });
           }
 
-          // Start trying to find transcript element
-          setupTranscriptObserver();
+          // Start trying to fetch conversation name
+          fetchConversationNameAndJoin();
 
           // Listen for summary events on the summary socket
           summarySocket.on('conversation-summarization-received', function(data) {
