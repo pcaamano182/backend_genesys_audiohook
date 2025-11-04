@@ -181,9 +181,18 @@ def periodic_conversation_summary(
                 server_id = str(server_id, encoding='utf-8')
                 channel = f"{server_id}:{conversation_name_without_location}"
 
+                # Extract Genesys conversation ID from conversation name
+                # Format: projects/{project}/conversations/a{genesys_id}
+                conversation_id = conversation_name_without_location.split('/')[-1]
+                if conversation_id.startswith('a'):
+                    genesys_conversation_id = conversation_id[1:]  # Remove 'a' prefix
+                else:
+                    genesys_conversation_id = conversation_id
+
                 # Prepare summary event payload matching Dialogflow format
                 summary_event = {
                     'conversationName': conversation_name,
+                    'genesysConversationId': genesys_conversation_id,
                     'payload': {
                         'summary': {
                             'text': summary_text,
@@ -195,6 +204,7 @@ def periodic_conversation_summary(
                 # Publish as conversation-summarization-received event
                 message = {
                     'conversation_name': conversation_name_without_location,
+                    'genesys_conversation_id': genesys_conversation_id,
                     'data': json.dumps(summary_event),
                     'data_type': 'conversation-summarization-received'
                 }

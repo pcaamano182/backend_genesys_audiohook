@@ -189,6 +189,9 @@
             auth: { token: accessToken }
           });
 
+          // Track which conversation this iframe is handling
+          let myConversationId = null;
+
           summarySocket.on('connect', function() {
             console.log('✅ [SUMMARY] Connected - Socket ID:', summarySocket.id);
             console.log('📡 [SUMMARY] Ready to receive summary broadcasts');
@@ -198,7 +201,38 @@
           summarySocket.on('conversation-summarization-received', function(data) {
             console.log('📝 [SUMMARY] ===== Summary Received =====');
             console.log('📝 [SUMMARY] Data:', data);
-            displaySummary(data);
+
+            // Extract conversation ID from the summary
+            let summaryConversationId = null;
+            try {
+              const parsedData = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
+              if (parsedData.genesysConversationId) {
+                summaryConversationId = parsedData.genesysConversationId;
+              } else if (parsedData.conversationName) {
+                // Fallback: extract from conversation name
+                const convId = parsedData.conversationName.split('/').pop();
+                summaryConversationId = convId.startsWith('a') ? convId.substring(1) : convId;
+              }
+            } catch (e) {
+              console.error('❌ [SUMMARY] Error parsing summary data:', e);
+            }
+
+            console.log('🔍 [SUMMARY] Summary conversation ID:', summaryConversationId);
+            console.log('🔍 [SUMMARY] My conversation ID:', myConversationId);
+
+            // First summary we receive sets our conversation ID
+            if (myConversationId === null && summaryConversationId) {
+              myConversationId = summaryConversationId;
+              console.log('✅ [SUMMARY] Set my conversation ID to:', myConversationId);
+            }
+
+            // Only display summaries for MY conversation
+            if (summaryConversationId && summaryConversationId === myConversationId) {
+              console.log('✅ [SUMMARY] This summary is for me, displaying...');
+              displaySummary(data);
+            } else {
+              console.log('⏭️ [SUMMARY] This summary is for another conversation, ignoring...');
+            }
           });
 
           // Log all events for debugging
