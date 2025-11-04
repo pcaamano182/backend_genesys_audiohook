@@ -268,7 +268,9 @@
 
           const title = document.createElement('div');
           title.className = 'summary-title';
-          title.textContent = '📊 Periodic Summary';
+          const existingSummaries = summariesContent.querySelectorAll('.summary-card').length;
+          const summaryMinute = existingSummaries + 1;
+          title.textContent = `📊 Summary ${summaryMinute} min`;
 
           const content = document.createElement('div');
           content.className = 'summary-content';
