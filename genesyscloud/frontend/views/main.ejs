@@ -190,28 +190,57 @@
           });
 
           let hasJoinedRoom = false;
+          let currentConversationName = null;
+
+          function joinConversationRoom(conversationName) {
+            if (hasJoinedRoom) {
+              console.log('ℹ️ [SUMMARY] Already joined room');
+              return;
+            }
+            console.log('🔗 [SUMMARY] Joining conversation room:', conversationName);
+            summarySocket.emit('join-conversation', conversationName);
+            hasJoinedRoom = true;
+            currentConversationName = conversationName;
+          }
 
           summarySocket.on('connect', function() {
             console.log('✅ [SUMMARY] Connected - Socket ID:', summarySocket.id);
+
+            // Rejoin room if reconnecting
+            if (currentConversationName) {
+              console.log('🔗 [SUMMARY] Rejoining after reconnect:', currentConversationName);
+              summarySocket.emit('join-conversation', currentConversationName);
+            }
           });
 
-          // Strategy: Listen to ALL Socket.IO events
-          // Join the room based on the FIRST event that has conversation_name
+          // Listen for Agent Assist events from the UI Module connector
+          // These events indicate an active conversation
+          addAgentAssistEventListener('new-message', function(event) {
+            if (!hasJoinedRoom && event.detail && event.detail.conversationName) {
+              const conversationName = event.detail.conversationName.replace('/locations/global', '');
+              console.log('🎯 [SUMMARY] Detected conversation from new-message:', conversationName);
+              joinConversationRoom(conversationName);
+            }
+          });
+
+          addAgentAssistEventListener('new-recognition-result-notification-event', function(event) {
+            if (!hasJoinedRoom && event.detail && event.detail.conversationName) {
+              const conversationName = event.detail.conversationName.replace('/locations/global', '');
+              console.log('🎯 [SUMMARY] Detected conversation from transcript:', conversationName);
+              joinConversationRoom(conversationName);
+            }
+          });
+
+          // Listen for summary events on the summary socket
+          summarySocket.on('conversation-summarization-received', function(data) {
+            console.log('📝 [SUMMARY] ===== Summary Received =====');
+            console.log('📝 [SUMMARY] Data:', data);
+            displaySummary(data);
+          });
+
+          // Log all events for debugging
           summarySocket.onAny(function(eventName, data) {
-            console.log('🔊 [SUMMARY] Event:', eventName, data);
-
-            // Auto-join room from first event with conversation_name
-            if (!hasJoinedRoom && data && data.conversation_name) {
-              console.log('🔗 [SUMMARY] Found conversation, joining room:', data.conversation_name);
-              summarySocket.emit('join-conversation', data.conversation_name);
-              hasJoinedRoom = true;
-            }
-
-            // Handle summary events
-            if (eventName === 'conversation-summarization-received') {
-              console.log('📝 [SUMMARY] ===== Summary Received =====');
-              displaySummary(data);
-            }
+            console.log('🔊 [SUMMARY] Socket event:', eventName);
           });
 
           summarySocket.on('disconnect', function() {
