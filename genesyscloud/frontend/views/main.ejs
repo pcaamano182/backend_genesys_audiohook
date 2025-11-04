@@ -219,9 +219,20 @@
             if (transcriptEl) {
               console.log('📊 [SUMMARY] Found transcript element, setting up observer');
 
+              // DEBUG: Log all attributes of transcript element
+              console.log('🔍 [SUMMARY] Transcript element attributes:');
+              for (let i = 0; i < transcriptEl.attributes.length; i++) {
+                const attr = transcriptEl.attributes[i];
+                console.log(`  - ${attr.name}: ${attr.value}`);
+              }
+
               // Observer to detect when transcript receives data
               const observer = new MutationObserver(function(mutations) {
                 if (!hasJoinedRoom) {
+                  mutations.forEach(function(mutation) {
+                    console.log('🔄 [SUMMARY] Mutation detected:', mutation.type, mutation.attributeName);
+                  });
+
                   // Check if transcript element has conversation-name attribute
                   const convName = transcriptEl.getAttribute('conversation-name');
                   if (convName) {
@@ -235,7 +246,6 @@
 
               observer.observe(transcriptEl, {
                 attributes: true,
-                attributeFilter: ['conversation-name'],
                 childList: true,
                 subtree: true
               });
@@ -246,6 +256,8 @@
                 const conversationName = existingConvName.replace('/locations/global', '');
                 console.log('🎯 [SUMMARY] Found existing conversation on transcript:', conversationName);
                 joinConversationRoom(conversationName);
+              } else {
+                console.log('⚠️ [SUMMARY] conversation-name attribute not set yet, waiting for mutation...');
               }
             } else {
               console.log('⏳ [SUMMARY] Transcript element not found yet, will retry...');
