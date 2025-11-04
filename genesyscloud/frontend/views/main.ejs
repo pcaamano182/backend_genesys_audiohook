@@ -189,34 +189,73 @@
             }
           });
 
+          let hasJoinedRoom = false;
+          let currentConversationRoom = null;
+
           socket.on('connect', function() {
             console.log('✅ [SUMMARY] Connected to summary socket - Socket ID:', socket.id);
+            // If we already know the conversation room, rejoin after reconnect
+            if (currentConversationRoom) {
+              console.log('🔗 [SUMMARY] Rejoining conversation room after reconnect:', currentConversationRoom);
+              socket.emit('join-conversation', currentConversationRoom);
+            }
           });
 
           socket.on('connect_error', function(error) {
             console.error('❌ [SUMMARY] Socket connection error:', error);
           });
 
-          // Listen for conversation-started event to join the correct room
+          // Helper function to join conversation room
+          function joinConversationRoom(conversationName) {
+            if (!conversationName) {
+              console.warn('⚠️ [SUMMARY] Cannot join room - no conversation name provided');
+              return;
+            }
+            const conversationNameWithoutLocation = conversationName.replace('/locations/global', '');
+            if (currentConversationRoom === conversationNameWithoutLocation) {
+              console.log('ℹ️ [SUMMARY] Already joined room:', conversationNameWithoutLocation);
+              return;
+            }
+            console.log('🔗 [SUMMARY] Joining conversation room:', conversationNameWithoutLocation);
+            socket.emit('join-conversation', conversationNameWithoutLocation);
+            currentConversationRoom = conversationNameWithoutLocation;
+            hasJoinedRoom = true;
+          }
+
+          // Listen for conversation-started event
           addAgentAssistEventListener('conversation-started', function(event) {
             console.log('🎯 [SUMMARY] conversation-started event received:', event.detail);
             if (event.detail && event.detail.conversationName) {
-              const conversationName = event.detail.conversationName;
-              // Strip location from conversation name for room matching
-              const conversationNameWithoutLocation = conversationName.replace('/locations/global', '');
-              console.log('🔗 [SUMMARY] Joining conversation room:', conversationNameWithoutLocation);
-              socket.emit('join-conversation', conversationNameWithoutLocation);
+              joinConversationRoom(event.detail.conversationName);
             }
           });
 
-          // Also listen for conversation-details-received as fallback
+          // Listen for conversation-details-received as fallback
           addAgentAssistEventListener('conversation-details-received', function(event) {
             console.log('🎯 [SUMMARY] conversation-details-received event:', event.detail);
             if (event.detail && event.detail.conversationName) {
-              const conversationName = event.detail.conversationName;
-              const conversationNameWithoutLocation = conversationName.replace('/locations/global', '');
-              console.log('🔗 [SUMMARY] Joining conversation room (from details):', conversationNameWithoutLocation);
-              socket.emit('join-conversation', conversationNameWithoutLocation);
+              joinConversationRoom(event.detail.conversationName);
+            }
+          });
+
+          // Listen for new-message events - these contain conversation name
+          addAgentAssistEventListener('new-message', function(event) {
+            console.log('🎯 [SUMMARY] new-message event:', event.detail);
+            if (!hasJoinedRoom && event.detail && event.detail.conversationName) {
+              console.log('🔗 [SUMMARY] Extracting conversation from new-message event');
+              joinConversationRoom(event.detail.conversationName);
+            }
+          });
+
+          // Listen for ANY WebSocket event from UI Connector
+          // This will log ALL events and try to extract conversation info
+          socket.onAny(function(eventName, data) {
+            console.log('🔊 [SUMMARY] Socket.IO event received:', eventName, data);
+
+            // Try to join conversation room from any event that has conversation_name
+            if (!hasJoinedRoom && data && data.conversation_name) {
+              console.log('🔗 [SUMMARY] Found conversation_name in event:', eventName);
+              joinConversationRoom(data.conversation_name);
             }
           });
 
@@ -251,11 +290,7 @@
 
           socket.on('disconnect', function() {
             console.log('❌ [SUMMARY] Disconnected from summary socket');
-          });
-
-          // Log all Socket.IO events for debugging
-          socket.onAny(function(eventName, ...args) {
-            console.log('🔊 [SUMMARY] Socket.IO event received:', eventName, args);
+            hasJoinedRoom = false;
           });
         };
         document.head.appendChild(script);
