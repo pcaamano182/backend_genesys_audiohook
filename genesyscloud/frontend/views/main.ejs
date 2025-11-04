@@ -220,12 +220,13 @@
             }
 
             // Re-read URL params each time (they change dynamically)
+            console.log('🔍 [SUMMARY] Current URL:', window.location.href);
             const currentUrlParams = new URLSearchParams(window.location.search);
             const conversationId = currentUrlParams.get('conversationid');
+            console.log('🔍 [SUMMARY] conversationid from URL:', conversationId);
 
             if (!conversationId) {
-              // console.log('⚠️ [SUMMARY] No conversationId in URL params yet, will retry...');
-              setTimeout(monitorUrlForConversationId, 500);
+              setTimeout(monitorUrlForConversationId, 2000);
               return;
             }
 
