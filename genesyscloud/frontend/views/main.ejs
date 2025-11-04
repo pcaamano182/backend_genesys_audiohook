@@ -171,11 +171,16 @@
        * Initialize Socket.IO listener for periodic summaries
        */
       function initSummaryListener() {
+        console.log('📊 [SUMMARY] Initializing summary Socket.IO listener');
+        console.log('📊 [SUMMARY] Proxy server:', proxyServer);
+        console.log('📊 [SUMMARY] Access token available:', !!accessToken);
+        console.log('📊 [SUMMARY] Conversation profile:', conversationProfile);
+
         // Import Socket.IO client library
         const script = document.createElement('script');
         script.src = 'https://cdn.socket.io/4.5.4/socket.io.min.js';
         script.onload = function() {
-          console.log('📊 Initializing summary Socket.IO listener');
+          console.log('📊 [SUMMARY] Socket.IO library loaded');
 
           // Connect to UI Connector
           const socket = io(proxyServer, {
@@ -185,41 +190,72 @@
           });
 
           socket.on('connect', function() {
-            console.log('✅ Connected to summary socket');
+            console.log('✅ [SUMMARY] Connected to summary socket - Socket ID:', socket.id);
+          });
+
+          socket.on('connect_error', function(error) {
+            console.error('❌ [SUMMARY] Socket connection error:', error);
           });
 
           // Listen for conversation-started event to join the correct room
           addAgentAssistEventListener('conversation-started', function(event) {
+            console.log('🎯 [SUMMARY] conversation-started event received:', event.detail);
             if (event.detail && event.detail.conversationName) {
               const conversationName = event.detail.conversationName;
               // Strip location from conversation name for room matching
               const conversationNameWithoutLocation = conversationName.replace('/locations/global', '');
-              console.log('🔗 Joining conversation room:', conversationNameWithoutLocation);
+              console.log('🔗 [SUMMARY] Joining conversation room:', conversationNameWithoutLocation);
               socket.emit('join-conversation', conversationNameWithoutLocation);
             }
           });
 
+          // Also listen for conversation-details-received as fallback
+          addAgentAssistEventListener('conversation-details-received', function(event) {
+            console.log('🎯 [SUMMARY] conversation-details-received event:', event.detail);
+            if (event.detail && event.detail.conversationName) {
+              const conversationName = event.detail.conversationName;
+              const conversationNameWithoutLocation = conversationName.replace('/locations/global', '');
+              console.log('🔗 [SUMMARY] Joining conversation room (from details):', conversationNameWithoutLocation);
+              socket.emit('join-conversation', conversationNameWithoutLocation);
+            }
+          });
+
+          // Listen for any Agent Assist events to understand what's happening
+          console.log('📊 [SUMMARY] Setting up global event listener for debugging');
+          window.addEventListener('agent-assist-event', function(event) {
+            console.log('🔔 [SUMMARY] Agent Assist Event:', event.type, event.detail);
+          });
+
           // Listen for conversation-summarization-received events from backend
           socket.on('conversation-summarization-received', function(data) {
-            console.log('📝 Received conversation summary event:', data);
+            console.log('📝 [SUMMARY] ===== Received conversation summary event =====');
+            console.log('📝 [SUMMARY] Raw data:', data);
 
             try {
               // Parse the data field which contains the summary event
               const summaryEvent = JSON.parse(data.data);
+              console.log('📝 [SUMMARY] Parsed summary event:', summaryEvent);
 
               // Dispatch the event to the Agent Assist UI Module
+              console.log('📝 [SUMMARY] Dispatching to UI Module with event name: conversation-summarization-received');
               dispatchAgentAssistEvent('conversation-summarization-received', {
                 detail: summaryEvent
               });
 
-              console.log('✅ Dispatched summary event to UI Module');
+              console.log('✅ [SUMMARY] Successfully dispatched summary event to UI Module');
             } catch (e) {
-              console.error('❌ Error processing summary event:', e);
+              console.error('❌ [SUMMARY] Error processing summary event:', e);
+              console.error('❌ [SUMMARY] Stack trace:', e.stack);
             }
           });
 
           socket.on('disconnect', function() {
-            console.log('❌ Disconnected from summary socket');
+            console.log('❌ [SUMMARY] Disconnected from summary socket');
+          });
+
+          // Log all Socket.IO events for debugging
+          socket.onAny(function(eventName, ...args) {
+            console.log('🔊 [SUMMARY] Socket.IO event received:', eventName, args);
           });
         };
         document.head.appendChild(script);
