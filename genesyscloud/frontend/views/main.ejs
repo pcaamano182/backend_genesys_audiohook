@@ -168,137 +168,44 @@
         }
 
       /**
-       * Initialize Socket.IO listener for periodic summaries
+       * Listen for conversation summary events from Agent Assist
+       * These events come through the UI Connector's existing Socket.IO connection
        */
       function initSummaryListener() {
-        console.log('📊 [SUMMARY] Initializing summary Socket.IO listener');
-        console.log('📊 [SUMMARY] Proxy server:', proxyServer);
-        console.log('📊 [SUMMARY] Access token available:', !!accessToken);
-        console.log('📊 [SUMMARY] Conversation profile:', conversationProfile);
+        console.log('📊 [SUMMARY] Setting up summary event listeners');
 
-        // Import Socket.IO client library
-        const script = document.createElement('script');
-        script.src = 'https://cdn.socket.io/4.5.4/socket.io.min.js';
-        script.onload = function() {
-          console.log('📊 [SUMMARY] Socket.IO library loaded');
+        // Listen for ALL Agent Assist events to debug
+        window.addEventListener('agent-assist-event', function(event) {
+          console.log('🔔 [SUMMARY] Agent Assist Event:', event.type, event.detail);
 
-          // Connect to UI Connector
-          const socket = io(proxyServer, {
-            auth: {
-              token: accessToken
-            }
-          });
-
-          let hasJoinedRoom = false;
-          let currentConversationRoom = null;
-
-          socket.on('connect', function() {
-            console.log('✅ [SUMMARY] Connected to summary socket - Socket ID:', socket.id);
-            // If we already know the conversation room, rejoin after reconnect
-            if (currentConversationRoom) {
-              console.log('🔗 [SUMMARY] Rejoining conversation room after reconnect:', currentConversationRoom);
-              socket.emit('join-conversation', currentConversationRoom);
-            }
-          });
-
-          socket.on('connect_error', function(error) {
-            console.error('❌ [SUMMARY] Socket connection error:', error);
-          });
-
-          // Helper function to join conversation room
-          function joinConversationRoom(conversationName) {
-            if (!conversationName) {
-              console.warn('⚠️ [SUMMARY] Cannot join room - no conversation name provided');
-              return;
-            }
-            const conversationNameWithoutLocation = conversationName.replace('/locations/global', '');
-            if (currentConversationRoom === conversationNameWithoutLocation) {
-              console.log('ℹ️ [SUMMARY] Already joined room:', conversationNameWithoutLocation);
-              return;
-            }
-            console.log('🔗 [SUMMARY] Joining conversation room:', conversationNameWithoutLocation);
-            socket.emit('join-conversation', conversationNameWithoutLocation);
-            currentConversationRoom = conversationNameWithoutLocation;
-            hasJoinedRoom = true;
-          }
-
-          // Listen for conversation-started event
-          addAgentAssistEventListener('conversation-started', function(event) {
-            console.log('🎯 [SUMMARY] conversation-started event received:', event.detail);
-            if (event.detail && event.detail.conversationName) {
-              joinConversationRoom(event.detail.conversationName);
-            }
-          });
-
-          // Listen for conversation-details-received as fallback
-          addAgentAssistEventListener('conversation-details-received', function(event) {
-            console.log('🎯 [SUMMARY] conversation-details-received event:', event.detail);
-            if (event.detail && event.detail.conversationName) {
-              joinConversationRoom(event.detail.conversationName);
-            }
-          });
-
-          // Listen for new-message events - these contain conversation name
-          addAgentAssistEventListener('new-message', function(event) {
-            console.log('🎯 [SUMMARY] new-message event:', event.detail);
-            if (!hasJoinedRoom && event.detail && event.detail.conversationName) {
-              console.log('🔗 [SUMMARY] Extracting conversation from new-message event');
-              joinConversationRoom(event.detail.conversationName);
-            }
-          });
-
-          // Listen for ANY WebSocket event from UI Connector
-          // This will log ALL events and try to extract conversation info
-          socket.onAny(function(eventName, data) {
-            console.log('🔊 [SUMMARY] Socket.IO event received:', eventName, data);
-
-            // Try to join conversation room from any event that has conversation_name
-            if (!hasJoinedRoom && data && data.conversation_name) {
-              console.log('🔗 [SUMMARY] Found conversation_name in event:', eventName);
-              joinConversationRoom(data.conversation_name);
-            }
-          });
-
-          // Listen for any Agent Assist events to understand what's happening
-          console.log('📊 [SUMMARY] Setting up global event listener for debugging');
-          window.addEventListener('agent-assist-event', function(event) {
-            console.log('🔔 [SUMMARY] Agent Assist Event:', event.type, event.detail);
-          });
-
-          // Listen for conversation-summarization-received events from backend
-          socket.on('conversation-summarization-received', function(data) {
+          // Check if this is a conversation-summarization-received event
+          if (event.type === 'conversation-summarization-received') {
             console.log('📝 [SUMMARY] ===== Received conversation summary event =====');
-            console.log('📝 [SUMMARY] Raw data:', data);
+            console.log('📝 [SUMMARY] Summary data:', event.detail);
+          }
+        });
 
-            try {
-              // Parse the data field which contains the summary event
-              const summaryEvent = JSON.parse(data.data);
-              console.log('📝 [SUMMARY] Parsed summary event:', summaryEvent);
+        // Specifically listen for conversation-summarization-received events
+        addAgentAssistEventListener('conversation-summarization-received', function(event) {
+          console.log('📝 [SUMMARY] ===== Conversation Summary Received =====');
+          console.log('📝 [SUMMARY] Event detail:', event.detail);
 
-              // Dispatch the event to the Agent Assist UI Module
-              console.log('📝 [SUMMARY] Dispatching to UI Module with event name: conversation-summarization-received');
-              dispatchAgentAssistEvent('conversation-summarization-received', {
-                detail: summaryEvent
-              });
+          if (event.detail && event.detail.payload && event.detail.payload.summary) {
+            const summaryText = event.detail.payload.summary.text;
+            console.log('📝 [SUMMARY] Summary text:', summaryText);
+            console.log('✅ [SUMMARY] Summary event processed successfully');
+          } else {
+            console.warn('⚠️ [SUMMARY] Summary event has unexpected structure');
+          }
+        });
 
-              console.log('✅ [SUMMARY] Successfully dispatched summary event to UI Module');
-            } catch (e) {
-              console.error('❌ [SUMMARY] Error processing summary event:', e);
-              console.error('❌ [SUMMARY] Stack trace:', e.stack);
-            }
-          });
-
-          socket.on('disconnect', function() {
-            console.log('❌ [SUMMARY] Disconnected from summary socket');
-            hasJoinedRoom = false;
-          });
-        };
-        document.head.appendChild(script);
+        console.log('✅ [SUMMARY] Summary listeners initialized');
       }
 
-      // Initialize summary listener after authentication
+      // Initialize summary listener after connector is ready
       addAgentAssistEventListener('genesys-cloud-connector-access-token-received', function(event) {
-        setTimeout(initSummaryListener, 2000); // Wait for auth to complete
+        console.log('📊 [SUMMARY] Access token received, initializing summary listeners');
+        setTimeout(initSummaryListener, 1000);
       });
 
       });
