@@ -19,12 +19,14 @@ import json
 import logging
 from dataclasses import dataclass, field
 from threading import Thread
+import base64
 
 import numpy as np
 from flask import Blueprint
 from flask_sock import Sock
 from google.api_core.exceptions import NotFound
 from google.cloud import dialogflow_v2beta1 as dialogflow
+from google.cloud import pubsub_v1
 from simple_websocket import Server
 
 from audio_stream import Stream
@@ -39,6 +41,10 @@ from PureCloudPlatformClientV2.rest import ApiException
 
 audiohook_bp = Blueprint("audiohook", __name__)
 sock = Sock(audiohook_bp)
+
+# Initialize Pub/Sub publisher for summaries when no SERVER_ID
+publisher = pubsub_v1.PublisherClient()
+PUBSUB_TOPIC = f"projects/{project}/topics/dematic-aa-conversation-event-topic"
 
 
 def get_genesys_conversation_details(conversation_id: str):
@@ -133,6 +139,7 @@ class OpenConversationState:
     customer_audio_config: object
     stop_summary: bool = field(default=False)
     summary_thread: Thread = field(default=None)
+    websocket: object = field(default=None)
 
 
 def periodic_conversation_summary(
@@ -175,45 +182,59 @@ def periodic_conversation_summary(
             logging.info("📝 Summary #%d generated (%d chars): %s",
                        summary_count, len(summary_text), summary_text[:200])
 
+            # Extract Genesys conversation ID from conversation name
+            # Format: projects/{project}/conversations/a{genesys_id}
+            conversation_id = conversation_name_without_location.split('/')[-1]
+            if conversation_id.startswith('a'):
+                genesys_conversation_id = conversation_id[1:]  # Remove 'a' prefix
+            else:
+                genesys_conversation_id = conversation_id
+
+            # Prepare summary event payload matching Dialogflow format
+            summary_event = {
+                'conversationName': conversation_name,
+                'genesysConversationId': genesys_conversation_id,
+                'summary': summary_text,
+                'summaryCount': summary_count
+            }
+
             # Get the SERVER_ID for this conversation from Redis
             server_id = redis_client.get(conversation_name_without_location)
             if server_id:
+                # Publish to Redis for UI Connector
                 server_id = str(server_id, encoding='utf-8')
                 channel = f"{server_id}:{conversation_name_without_location}"
 
-                # Extract Genesys conversation ID from conversation name
-                # Format: projects/{project}/conversations/a{genesys_id}
-                conversation_id = conversation_name_without_location.split('/')[-1]
-                if conversation_id.startswith('a'):
-                    genesys_conversation_id = conversation_id[1:]  # Remove 'a' prefix
-                else:
-                    genesys_conversation_id = conversation_id
-
-                # Prepare summary event payload matching Dialogflow format
-                summary_event = {
-                    'conversationName': conversation_name,
-                    'genesysConversationId': genesys_conversation_id,
-                    'payload': {
-                        'summary': {
-                            'text': summary_text,
-                            'textSections': {}
-                        }
-                    }
-                }
-
-                # Publish as conversation-summarization-received event
                 message = {
                     'conversation_name': conversation_name_without_location,
                     'genesys_conversation_id': genesys_conversation_id,
-                    'data': json.dumps(summary_event),
+                    'data': json.dumps({
+                        'conversationName': conversation_name,
+                        'genesysConversationId': genesys_conversation_id,
+                        'payload': {
+                            'summary': {
+                                'text': summary_text,
+                                'textSections': {}
+                            }
+                        }
+                    }),
                     'data_type': 'conversation-summarization-received'
                 }
 
                 redis_client.publish(channel, json.dumps(message))
-                logging.info("✅ Published summary #%d to channel: %s", summary_count, channel)
+                logging.info("✅ Published summary #%d to Redis channel: %s", summary_count, channel)
             else:
-                logging.warning("⚠️ No SERVER_ID found for conversation: %s",
-                              conversation_name_without_location)
+                # No SERVER_ID - publish to Pub/Sub for test apps
+                logging.info("📤 No SERVER_ID, publishing summary #%d to Pub/Sub for conversation: %s",
+                           summary_count, conversation_name_without_location)
+                try:
+                    message_data = json.dumps(summary_event).encode('utf-8')
+                    future = publisher.publish(PUBSUB_TOPIC, message_data)
+                    future.result()  # Wait for publish to complete
+                    logging.info("✅ Published summary #%d to Pub/Sub topic: %s",
+                               summary_count, PUBSUB_TOPIC)
+                except Exception as e:
+                    logging.error("❌ Failed to publish summary to Pub/Sub: %s", e)
         else:
             logging.warning("⚠️ No summary generated for %s", conversation_name)
 
